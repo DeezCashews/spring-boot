@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.config.JmsListenerConfigUtils;
 import org.springframework.jms.support.destination.DestinationResolver;
 import org.springframework.jms.support.destination.JndiDestinationResolver;
-import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.jta.JtaTransactionManager;
 
 /**
  * Configuration for Spring 4.1 annotation driven JMS.
@@ -46,24 +46,28 @@ class JmsAnnotationDrivenConfiguration {
 	private DestinationResolver destinationResolver;
 
 	@Autowired(required = false)
-	private PlatformTransactionManager transactionManager;
+	private JtaTransactionManager transactionManager;
 
 	@Autowired
 	private JmsProperties properties;
 
 	@Bean
+	@ConditionalOnMissingBean
+	public DefaultJmsListenerContainerFactoryConfigurer jmsListenerContainerFactoryConfigurer() {
+		DefaultJmsListenerContainerFactoryConfigurer configurer = new DefaultJmsListenerContainerFactoryConfigurer();
+		configurer.setDestinationResolver(this.destinationResolver);
+		configurer.setTransactionManager(this.transactionManager);
+		configurer.setJmsProperties(this.properties);
+		return configurer;
+	}
+
+	@Bean
 	@ConditionalOnMissingBean(name = "jmsListenerContainerFactory")
 	public DefaultJmsListenerContainerFactory jmsListenerContainerFactory(
+			DefaultJmsListenerContainerFactoryConfigurer configurer,
 			ConnectionFactory connectionFactory) {
 		DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
-		factory.setConnectionFactory(connectionFactory);
-		factory.setPubSubDomain(this.properties.isPubSubDomain());
-		if (this.transactionManager != null) {
-			factory.setTransactionManager(this.transactionManager);
-		}
-		if (this.destinationResolver != null) {
-			factory.setDestinationResolver(this.destinationResolver);
-		}
+		configurer.configure(factory, connectionFactory);
 		return factory;
 	}
 
@@ -76,8 +80,8 @@ class JmsAnnotationDrivenConfiguration {
 	protected static class JndiConfiguration {
 
 		@Bean
-		@ConditionalOnMissingBean
-		public DestinationResolver destinationResolver() {
+		@ConditionalOnMissingBean(DestinationResolver.class)
+		public JndiDestinationResolver destinationResolver() {
 			JndiDestinationResolver resolver = new JndiDestinationResolver();
 			resolver.setFallbackToDynamicDestination(true);
 			return resolver;

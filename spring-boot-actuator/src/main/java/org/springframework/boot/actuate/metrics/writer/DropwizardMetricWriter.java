@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
-import org.springframework.boot.actuate.metrics.Metric;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
@@ -29,9 +27,12 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 
+import org.springframework.boot.actuate.metrics.Metric;
+import org.springframework.boot.actuate.metrics.dropwizard.DropwizardMetricServices;
+
 /**
- * A {@link MetricWriter} that send data to a Codahale {@link MetricRegistry} based on a
- * naming convention:
+ * A {@link MetricWriter} that send data to a Dropwizard {@link MetricRegistry} based on a
+ * naming convention.
  *
  * <ul>
  * <li>Updates to {@link #increment(Delta)} with names in "meter.*" are treated as
@@ -46,7 +47,9 @@ import com.codahale.metrics.Timer;
  * </ul>
  *
  * @author Dave Syer
+ * @deprecated Since 1.3 in favor of {@link DropwizardMetricServices}
  */
+@Deprecated
 public class DropwizardMetricWriter implements MetricWriter {
 
 	private final MetricRegistry registry;
@@ -91,16 +94,16 @@ public class DropwizardMetricWriter implements MetricWriter {
 		else {
 			final double gauge = value.getValue().doubleValue();
 			// Ensure we synchronize to avoid another thread pre-empting this thread after
-			// remove causing an error in CodaHale metrics
-			// NOTE: CodaHale provides no way to do this atomically
-			synchronized (getGuageLock(name)) {
+			// remove causing an error in Dropwizard Metrics
+			// NOTE: Dropwizard Metrics provides no way to do this atomically
+			synchronized (getGaugeLock(name)) {
 				this.registry.remove(name);
 				this.registry.register(name, new SimpleGauge(gauge));
 			}
 		}
 	}
 
-	private Object getGuageLock(String name) {
+	private Object getGaugeLock(String name) {
 		Object lock = this.gaugeLocks.get(name);
 		if (lock == null) {
 			Object newLock = new Object();
@@ -118,7 +121,7 @@ public class DropwizardMetricWriter implements MetricWriter {
 	/**
 	 * Simple {@link Gauge} implementation to {@literal double} value.
 	 */
-	private static class SimpleGauge implements Gauge<Double> {
+	private final static class SimpleGauge implements Gauge<Double> {
 
 		private final double value;
 
@@ -130,6 +133,7 @@ public class DropwizardMetricWriter implements MetricWriter {
 		public Double getValue() {
 			return this.value;
 		}
+
 	}
 
 }

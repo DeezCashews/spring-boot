@@ -56,14 +56,13 @@ public class MultipartAutoConfiguration {
 	private MultipartProperties multipartProperties = new MultipartProperties();
 
 	@Bean
-	@ConditionalOnMissingBean(value = { MultipartConfigElement.class,
-			MultipartResolver.class })
+	@ConditionalOnMissingBean
 	public MultipartConfigElement multipartConfigElement() {
 		return this.multipartProperties.createMultipartConfig();
 	}
 
 	@Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
-	@ConditionalOnMissingBean(value = MultipartResolver.class)
+	@ConditionalOnMissingBean(MultipartResolver.class)
 	public StandardServletMultipartResolver multipartResolver() {
 		return new StandardServletMultipartResolver();
 	}

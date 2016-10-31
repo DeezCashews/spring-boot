@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.boot.autoconfigure.condition;
 
 import org.junit.Test;
+
 import org.springframework.boot.test.EnvironmentTestUtils;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -30,12 +31,13 @@ import static org.junit.Assert.assertThat;
  * Tests for {@link AnyNestedCondition}.
  *
  * @author Phillip Webb
+ * @author Dave Syer
  */
 public class AnyNestedConditionTests {
 
 	@Test
 	public void neither() throws Exception {
-		AnnotationConfigApplicationContext context = load(OnPropertyAorBCondition.class);
+		AnnotationConfigApplicationContext context = load(Config.class);
 		assertThat(context.containsBean("myBean"), equalTo(false));
 		context.close();
 	}
@@ -82,7 +84,7 @@ public class AnyNestedConditionTests {
 
 	static class OnPropertyAorBCondition extends AnyNestedCondition {
 
-		public OnPropertyAorBCondition() {
+		OnPropertyAorBCondition() {
 			super(ConfigurationPhase.PARSE_CONFIGURATION);
 		}
 
@@ -91,6 +93,7 @@ public class AnyNestedConditionTests {
 
 		}
 
+		@ConditionalOnExpression("true")
 		@ConditionalOnProperty("b")
 		static class HasPropertyB {
 

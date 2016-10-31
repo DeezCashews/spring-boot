@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import org.hamcrest.Matcher;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
 import org.springframework.boot.configurationprocessor.TestCompiler;
 import org.springframework.boot.configurationsample.fieldvalues.FieldValues;
 
@@ -74,6 +75,10 @@ public abstract class AbstractFieldValuesProcessorTests {
 		assertThat(values.get("integerObject"), equalToObject(3));
 		assertThat(values.get("integerObjectNone"), nullValue());
 		assertThat(values.get("integerObjectConst"), equalToObject(4));
+		assertThat(values.get("charset"), equalToObject("US-ASCII"));
+		assertThat(values.get("charsetConst"), equalToObject("UTF-8"));
+		assertThat(values.get("mimeType"), equalToObject("text/html"));
+		assertThat(values.get("mimeTypeConst"), equalToObject("text/plain"));
 		assertThat(values.get("object"), equalToObject(123));
 		assertThat(values.get("objectNone"), nullValue());
 		assertThat(values.get("objectConst"), equalToObject("c"));
@@ -82,8 +87,8 @@ public abstract class AbstractFieldValuesProcessorTests {
 				equalToObject(new Object[] { "FOO", "BAR" }));
 		assertThat(values.get("stringArrayNone"), nullValue());
 		assertThat(values.get("stringEmptyArray"), equalToObject(new Object[0]));
-		assertThat(values.get("stringArrayConst"), equalToObject(new Object[] { "OK",
-				"KO" }));
+		assertThat(values.get("stringArrayConst"),
+				equalToObject(new Object[] { "OK", "KO" }));
 		assertThat(values.get("stringArrayConstElements"),
 				equalToObject(new Object[] { "c" }));
 		assertThat(values.get("integerArray"), equalToObject(new Object[] { 42, 24 }));
@@ -94,7 +99,8 @@ public abstract class AbstractFieldValuesProcessorTests {
 		return equalTo(object);
 	}
 
-	@SupportedAnnotationTypes({ "org.springframework.boot.configurationsample.ConfigurationProperties" })
+	@SupportedAnnotationTypes({
+			"org.springframework.boot.configurationsample.ConfigurationProperties" })
 	@SupportedSourceVersion(SourceVersion.RELEASE_6)
 	private class TestProcessor extends AbstractProcessor {
 
@@ -114,8 +120,8 @@ public abstract class AbstractFieldValuesProcessorTests {
 				for (Element element : roundEnv.getElementsAnnotatedWith(annotation)) {
 					if (element instanceof TypeElement) {
 						try {
-							this.values.putAll(this.processor
-									.getFieldValues((TypeElement) element));
+							this.values.putAll(
+									this.processor.getFieldValues((TypeElement) element));
 						}
 						catch (Exception ex) {
 							throw new IllegalStateException(ex);

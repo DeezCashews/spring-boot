@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import javax.sql.XADataSource;
 
 import org.hsqldb.jdbc.pool.JDBCXADataSource;
 import org.junit.Test;
+
 import org.springframework.boot.jta.XADataSourceWrapper;
 import org.springframework.boot.test.EnvironmentTestUtils;
 import org.springframework.context.ApplicationContext;
@@ -64,9 +65,8 @@ public class XADataSourceAutoConfigurationTests {
 
 	@Test
 	public void createFromClass() throws Exception {
-		ApplicationContext context = createContext(
-				FromProperties.class,
-				"spring.datasource.xa.data-source-class:org.hsqldb.jdbc.pool.JDBCXADataSource",
+		ApplicationContext context = createContext(FromProperties.class,
+				"spring.datasource.xa.data-source-class-name:org.hsqldb.jdbc.pool.JDBCXADataSource",
 				"spring.datasource.xa.properties.database-name:test");
 		context.getBean(DataSource.class);
 		MockXADataSourceWrapper wrapper = context.getBean(MockXADataSourceWrapper.class);

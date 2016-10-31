@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,21 @@
 package org.springframework.boot.autoconfigure.condition;
 
 import org.junit.Test;
+
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.scan.ScannedFactoryBeanConfiguration;
+import org.springframework.boot.autoconfigure.condition.scan.ScannedFactoryBeanWithBeanMethodArgumentsConfiguration;
+import org.springframework.boot.test.EnvironmentTestUtils;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.context.annotation.ImportResource;
@@ -32,6 +40,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.util.Assert;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -43,6 +52,7 @@ import static org.junit.Assert.assertTrue;
  * @author Dave Syer
  * @author Phillip Webb
  * @author Jakub Kubrynski
+ * @author Andy Wilkinson
  */
 @SuppressWarnings("resource")
 public class ConditionalOnMissingBeanTests {
@@ -126,6 +136,38 @@ public class ConditionalOnMissingBeanTests {
 	}
 
 	@Test
+	public void testOnMissingBeanConditionWithComponentScannedFactoryBean() {
+		this.context.register(ComponentScannedFactoryBeanBeanMethodConfiguration.class,
+				ConditionalOnFactoryBean.class,
+				PropertyPlaceholderAutoConfiguration.class);
+		this.context.refresh();
+		assertThat(this.context.getBean(ExampleBean.class).toString(),
+				equalTo("fromFactory"));
+	}
+
+	@Test
+	public void testOnMissingBeanConditionWithComponentScannedFactoryBeanWithBeanMethodArguments() {
+		this.context.register(
+				ComponentScannedFactoryBeanBeanMethodWithArgumentsConfiguration.class,
+				ConditionalOnFactoryBean.class,
+				PropertyPlaceholderAutoConfiguration.class);
+		this.context.refresh();
+		assertThat(this.context.getBean(ExampleBean.class).toString(),
+				equalTo("fromFactory"));
+	}
+
+	@Test
+	public void testOnMissingBeanConditionWithFactoryBeanWithBeanMethodArguments() {
+		this.context.register(FactoryBeanWithBeanMethodArgumentsConfiguration.class,
+				ConditionalOnFactoryBean.class,
+				PropertyPlaceholderAutoConfiguration.class);
+		EnvironmentTestUtils.addEnvironment(this.context, "theValue:foo");
+		this.context.refresh();
+		assertThat(this.context.getBean(ExampleBean.class).toString(),
+				equalTo("fromFactory"));
+	}
+
+	@Test
 	public void testOnMissingBeanConditionWithConcreteFactoryBean() {
 		this.context.register(ConcreteFactoryBeanConfiguration.class,
 				ConditionalOnFactoryBean.class,
@@ -157,8 +199,18 @@ public class ConditionalOnMissingBeanTests {
 	}
 
 	@Test
-	public void testOnMissingBeanConditionWithNonspecificFactoryBean() {
-		this.context.register(NonspecificFactoryBeanConfiguration.class,
+	public void testOnMissingBeanConditionWithNonspecificFactoryBeanWithClassAttribute() {
+		this.context.register(NonspecificFactoryBeanClassAttributeConfiguration.class,
+				ConditionalOnFactoryBean.class,
+				PropertyPlaceholderAutoConfiguration.class);
+		this.context.refresh();
+		assertThat(this.context.getBean(ExampleBean.class).toString(),
+				equalTo("fromFactory"));
+	}
+
+	@Test
+	public void testOnMissingBeanConditionWithNonspecificFactoryBeanWithStringAttribute() {
+		this.context.register(NonspecificFactoryBeanStringAttributeConfiguration.class,
 				ConditionalOnFactoryBean.class,
 				PropertyPlaceholderAutoConfiguration.class);
 		this.context.refresh();
@@ -176,6 +228,67 @@ public class ConditionalOnMissingBeanTests {
 				equalTo("fromFactory"));
 	}
 
+	@Test
+	public void testOnMissingBeanConditionWithIgnoredSubclass() {
+		this.context.register(CustomExampleBeanConfiguration.class,
+				ConditionalOnIgnoredSubclass.class,
+				PropertyPlaceholderAutoConfiguration.class);
+		this.context.refresh();
+		assertThat(this.context.getBeansOfType(ExampleBean.class).size(), is(equalTo(2)));
+		assertThat(this.context.getBeansOfType(CustomExampleBean.class).size(),
+				is(equalTo(1)));
+	}
+
+	@Test
+	public void testOnMissingBeanConditionWithIgnoredSubclassByName() {
+		this.context.register(CustomExampleBeanConfiguration.class,
+				ConditionalOnIgnoredSubclassByName.class,
+				PropertyPlaceholderAutoConfiguration.class);
+		this.context.refresh();
+		assertThat(this.context.getBeansOfType(ExampleBean.class).size(), is(equalTo(2)));
+		assertThat(this.context.getBeansOfType(CustomExampleBean.class).size(),
+				is(equalTo(1)));
+	}
+
+	@Test
+	public void grandparentIsConsideredWhenUsingParentsStrategy() {
+		this.context.register(ExampleBeanConfiguration.class);
+		this.context.refresh();
+		AnnotationConfigApplicationContext parent = new AnnotationConfigApplicationContext();
+		parent.setParent(this.context);
+		parent.refresh();
+		AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
+		child.setParent(parent);
+		child.register(ExampleBeanConfiguration.class,
+				OnBeanInParentsConfiguration.class);
+		child.refresh();
+		assertThat(child.getBeansOfType(ExampleBean.class).size(), is(equalTo(1)));
+		child.close();
+		parent.close();
+	}
+
+	@Test
+	public void currentContextIsIgnoredWhenUsingParentsStrategy() {
+		this.context.refresh();
+		AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
+		child.register(ExampleBeanConfiguration.class,
+				OnBeanInParentsConfiguration.class);
+		child.setParent(this.context);
+		child.refresh();
+		assertThat(child.getBeansOfType(ExampleBean.class).size(), is(equalTo(2)));
+	}
+
+	@Configuration
+	protected static class OnBeanInParentsConfiguration {
+
+		@Bean
+		@ConditionalOnMissingBean(search = SearchStrategy.PARENTS)
+		public ExampleBean exampleBean2() {
+			return new ExampleBean("test");
+		}
+
+	}
+
 	@Configuration
 	@ConditionalOnMissingBean(name = "foo")
 	protected static class OnBeanNameConfiguration {
@@ -190,6 +303,27 @@ public class ConditionalOnMissingBeanTests {
 		@Bean
 		public FactoryBean<ExampleBean> exampleBeanFactoryBean() {
 			return new ExampleFactoryBean("foo");
+		}
+	}
+
+	@Configuration
+	@ComponentScan(basePackages = "org.springframework.boot.autoconfigure.condition.scan", includeFilters = @Filter(type = FilterType.ASSIGNABLE_TYPE, classes = ScannedFactoryBeanConfiguration.class))
+	protected static class ComponentScannedFactoryBeanBeanMethodConfiguration {
+
+	}
+
+	@Configuration
+	@ComponentScan(basePackages = "org.springframework.boot.autoconfigure.condition.scan", includeFilters = @Filter(type = FilterType.ASSIGNABLE_TYPE, classes = ScannedFactoryBeanWithBeanMethodArgumentsConfiguration.class))
+	protected static class ComponentScannedFactoryBeanBeanMethodWithArgumentsConfiguration {
+
+	}
+
+	@Configuration
+	protected static class FactoryBeanWithBeanMethodArgumentsConfiguration {
+		@Bean
+		public FactoryBean<ExampleBean> exampleBeanFactoryBean(
+				@Value("${theValue}") String value) {
+			return new ExampleFactoryBean(value);
 		}
 	}
 
@@ -211,12 +345,12 @@ public class ConditionalOnMissingBeanTests {
 	}
 
 	@Configuration
-	@Import(NonspecificFactoryBeanRegistrar.class)
-	protected static class NonspecificFactoryBeanConfiguration {
+	@Import(NonspecificFactoryBeanClassAttributeRegistrar.class)
+	protected static class NonspecificFactoryBeanClassAttributeConfiguration {
 	}
 
-	protected static class NonspecificFactoryBeanRegistrar implements
-			ImportBeanDefinitionRegistrar {
+	protected static class NonspecificFactoryBeanClassAttributeRegistrar
+			implements ImportBeanDefinitionRegistrar {
 
 		@Override
 		public void registerBeanDefinitions(AnnotationMetadata meta,
@@ -226,6 +360,29 @@ public class ConditionalOnMissingBeanTests {
 			builder.addConstructorArgValue("foo");
 			builder.getBeanDefinition().setAttribute(
 					OnBeanCondition.FACTORY_BEAN_OBJECT_TYPE, ExampleBean.class);
+			registry.registerBeanDefinition("exampleBeanFactoryBean",
+					builder.getBeanDefinition());
+		}
+
+	}
+
+	@Configuration
+	@Import(NonspecificFactoryBeanClassAttributeRegistrar.class)
+	protected static class NonspecificFactoryBeanStringAttributeConfiguration {
+	}
+
+	protected static class NonspecificFactoryBeanStringAttributeRegistrar
+			implements ImportBeanDefinitionRegistrar {
+
+		@Override
+		public void registerBeanDefinitions(AnnotationMetadata meta,
+				BeanDefinitionRegistry registry) {
+			BeanDefinitionBuilder builder = BeanDefinitionBuilder
+					.genericBeanDefinition(NonspecificFactoryBean.class);
+			builder.addConstructorArgValue("foo");
+			builder.getBeanDefinition().setAttribute(
+					OnBeanCondition.FACTORY_BEAN_OBJECT_TYPE,
+					ExampleBean.class.getName());
 			registry.registerBeanDefinition("exampleBeanFactoryBean",
 					builder.getBeanDefinition());
 		}
@@ -263,6 +420,38 @@ public class ConditionalOnMissingBeanTests {
 		public ExampleBean createExampleBean() {
 			return new ExampleBean("direct");
 		}
+	}
+
+	@Configuration
+	protected static class ConditionalOnIgnoredSubclass {
+
+		@Bean
+		@ConditionalOnMissingBean(value = ExampleBean.class, ignored = CustomExampleBean.class)
+		public ExampleBean exampleBean() {
+			return new ExampleBean("test");
+		}
+
+	}
+
+	@Configuration
+	protected static class ConditionalOnIgnoredSubclassByName {
+
+		@Bean
+		@ConditionalOnMissingBean(value = ExampleBean.class, ignoredType = "org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBeanTests.CustomExampleBean")
+		public ExampleBean exampleBean() {
+			return new ExampleBean("test");
+		}
+
+	}
+
+	@Configuration
+	protected static class CustomExampleBeanConfiguration {
+
+		@Bean
+		public CustomExampleBean customExampleBean() {
+			return new CustomExampleBean();
+		}
+
 	}
 
 	@Configuration
@@ -331,6 +520,14 @@ public class ConditionalOnMissingBeanTests {
 		@Override
 		public String toString() {
 			return this.value;
+		}
+
+	}
+
+	public static class CustomExampleBean extends ExampleBean {
+
+		public CustomExampleBean() {
+			super("custom subclass");
 		}
 
 	}

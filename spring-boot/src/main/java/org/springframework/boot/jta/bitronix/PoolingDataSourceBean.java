@@ -26,14 +26,15 @@ import javax.sql.DataSource;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 
-import org.springframework.beans.factory.BeanNameAware;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.util.StringUtils;
-
 import bitronix.tm.resource.common.ResourceBean;
 import bitronix.tm.resource.common.XAStatefulHolder;
 import bitronix.tm.resource.jdbc.PoolingDataSource;
+
+import org.springframework.beans.factory.BeanNameAware;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.lang.UsesJava7;
+import org.springframework.util.StringUtils;
 
 /**
  * Spring friendly version of {@link PoolingDataSource}. Provides sensible defaults and
@@ -46,8 +47,8 @@ import bitronix.tm.resource.jdbc.PoolingDataSource;
  */
 @SuppressWarnings("serial")
 @ConfigurationProperties(prefix = "spring.jta.bitronix.datasource")
-public class PoolingDataSourceBean extends PoolingDataSource implements BeanNameAware,
-		InitializingBean {
+public class PoolingDataSourceBean extends PoolingDataSource
+		implements BeanNameAware, InitializingBean {
 
 	private static ThreadLocal<PoolingDataSourceBean> source = new ThreadLocal<PoolingDataSourceBean>();
 
@@ -110,6 +111,7 @@ public class PoolingDataSourceBean extends PoolingDataSource implements BeanName
 	}
 
 	@Override
+	@UsesJava7
 	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
 		try {
 			return ((DataSource) this).getParentLogger();
@@ -166,6 +168,7 @@ public class PoolingDataSourceBean extends PoolingDataSource implements BeanName
 		}
 
 		@Override
+		@UsesJava7
 		public Logger getParentLogger() throws SQLFeatureNotSupportedException {
 			return this.dataSource.getParentLogger();
 		}

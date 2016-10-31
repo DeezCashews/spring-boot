@@ -16,8 +16,11 @@
 
 package org.springframework.boot;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import sampleconfig.MyComponentInPackageWithoutDot;
+
 import org.springframework.boot.sampleconfig.MyComponent;
 import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.core.io.ClassPathResource;
@@ -40,6 +43,11 @@ public class BeanDefinitionLoaderTests {
 		this.registry = new StaticApplicationContext();
 	}
 
+	@After
+	public void cleanUp() {
+		this.registry.close();
+	}
+
 	@Test
 	public void loadClass() throws Exception {
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
@@ -51,7 +59,8 @@ public class BeanDefinitionLoaderTests {
 
 	@Test
 	public void loadXmlResource() throws Exception {
-		ClassPathResource resource = new ClassPathResource("sample-beans.xml", getClass());
+		ClassPathResource resource = new ClassPathResource("sample-beans.xml",
+				getClass());
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry, resource);
 		int loaded = loader.load();
 		assertThat(loaded, equalTo(1));
@@ -124,6 +133,16 @@ public class BeanDefinitionLoaderTests {
 		int loaded = loader.load();
 		assertThat(loaded, equalTo(1));
 		assertTrue(this.registry.containsBean("myComponent"));
+	}
+
+	@Test
+	public void loadPackageNameWithoutDot() throws Exception {
+		// See gh-6126
+		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
+				MyComponentInPackageWithoutDot.class.getPackage().getName());
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myComponentInPackageWithoutDot"));
 	}
 
 	@Test

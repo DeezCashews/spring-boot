@@ -27,11 +27,12 @@ import javax.transaction.UserTransaction;
 
 import org.hibernate.engine.transaction.jta.platform.spi.JtaPlatform;
 import org.junit.Test;
+
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
-import org.springframework.boot.autoconfigure.jta.JtaAutoConfiguration;
-import org.springframework.boot.autoconfigure.jta.JtaProperties;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
+import org.springframework.boot.autoconfigure.transaction.jta.JtaAutoConfiguration;
+import org.springframework.boot.autoconfigure.transaction.jta.JtaProperties;
 import org.springframework.boot.orm.jpa.hibernate.SpringJtaPlatform;
 import org.springframework.boot.test.EnvironmentTestUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -50,7 +51,8 @@ import static org.junit.Assert.assertThat;
  * @author Phillip Webb
  * @author Andy Wilkinson
  */
-public class HibernateJpaAutoConfigurationTests extends AbstractJpaAutoConfigurationTests {
+public class HibernateJpaAutoConfigurationTests
+		extends AbstractJpaAutoConfigurationTests {
 
 	@Override
 	protected Class<?> getAutoConfigureClass() {
@@ -65,9 +67,9 @@ public class HibernateJpaAutoConfigurationTests extends AbstractJpaAutoConfigura
 				"spring.datasource.schema:classpath:/ddl.sql");
 		setupTestConfiguration();
 		this.context.refresh();
-		assertEquals(new Integer(1),
-				new JdbcTemplate(this.context.getBean(DataSource.class)).queryForObject(
-						"SELECT COUNT(*) from CITY", Integer.class));
+		assertEquals(Integer.valueOf(1),
+				new JdbcTemplate(this.context.getBean(DataSource.class))
+						.queryForObject("SELECT COUNT(*) from CITY", Integer.class));
 	}
 
 	// This can't succeed because the data SQL is executed immediately after the schema
@@ -78,9 +80,9 @@ public class HibernateJpaAutoConfigurationTests extends AbstractJpaAutoConfigura
 				"spring.datasource.data:classpath:/city.sql");
 		setupTestConfiguration();
 		this.context.refresh();
-		assertEquals(new Integer(1),
-				new JdbcTemplate(this.context.getBean(DataSource.class)).queryForObject(
-						"SELECT COUNT(*) from CITY", Integer.class));
+		assertEquals(Integer.valueOf(1),
+				new JdbcTemplate(this.context.getBean(DataSource.class))
+						.queryForObject("SELECT COUNT(*) from CITY", Integer.class));
 	}
 
 	@Test
@@ -92,23 +94,8 @@ public class HibernateJpaAutoConfigurationTests extends AbstractJpaAutoConfigura
 		this.context.refresh();
 		LocalContainerEntityManagerFactoryBean bean = this.context
 				.getBean(LocalContainerEntityManagerFactoryBean.class);
-		String actual = (String) bean.getJpaPropertyMap().get(
-				"hibernate.ejb.naming_strategy");
-		assertThat(actual, equalTo("org.hibernate.cfg.EJB3NamingStrategy"));
-	}
-
-	@Test
-	public void testNamingStrategyThatWorkedInOneDotOhContinuesToWork() {
-		EnvironmentTestUtils.addEnvironment(this.context,
-				"spring.jpa.hibernate.namingstrategy:"
-						+ "org.hibernate.cfg.EJB3NamingStrategy");
-		setupTestConfiguration();
-
-		this.context.refresh();
-		LocalContainerEntityManagerFactoryBean bean = this.context
-				.getBean(LocalContainerEntityManagerFactoryBean.class);
-		String actual = (String) bean.getJpaPropertyMap().get(
-				"hibernate.ejb.naming_strategy");
+		String actual = (String) bean.getJpaPropertyMap()
+				.get("hibernate.ejb.naming_strategy");
 		assertThat(actual, equalTo("org.hibernate.cfg.EJB3NamingStrategy"));
 	}
 
@@ -121,8 +108,8 @@ public class HibernateJpaAutoConfigurationTests extends AbstractJpaAutoConfigura
 		this.context.refresh();
 		LocalContainerEntityManagerFactoryBean bean = this.context
 				.getBean(LocalContainerEntityManagerFactoryBean.class);
-		String actual = (String) bean.getJpaPropertyMap().get(
-				"hibernate.ejb.naming_strategy");
+		String actual = (String) bean.getJpaPropertyMap()
+				.get("hibernate.ejb.naming_strategy");
 		// You can't override this one from spring.jpa.properties because it has an
 		// opinionated default
 		assertThat(actual, not(equalTo("org.hibernate.cfg.EJB3NamingStrategy")));
@@ -155,8 +142,9 @@ public class HibernateJpaAutoConfigurationTests extends AbstractJpaAutoConfigura
 		this.context.register(JtaProperties.class, JtaAutoConfiguration.class);
 		setupTestConfiguration();
 		this.context.refresh();
-		Map<String, Object> jpaPropertyMap = this.context.getBean(
-				LocalContainerEntityManagerFactoryBean.class).getJpaPropertyMap();
+		Map<String, Object> jpaPropertyMap = this.context
+				.getBean(LocalContainerEntityManagerFactoryBean.class)
+				.getJpaPropertyMap();
 		assertThat(jpaPropertyMap.get("hibernate.transaction.jta.platform"),
 				instanceOf(SpringJtaPlatform.class));
 	}
@@ -169,8 +157,9 @@ public class HibernateJpaAutoConfigurationTests extends AbstractJpaAutoConfigura
 		this.context.register(JtaProperties.class, JtaAutoConfiguration.class);
 		setupTestConfiguration();
 		this.context.refresh();
-		Map<String, Object> jpaPropertyMap = this.context.getBean(
-				LocalContainerEntityManagerFactoryBean.class).getJpaPropertyMap();
+		Map<String, Object> jpaPropertyMap = this.context
+				.getBean(LocalContainerEntityManagerFactoryBean.class)
+				.getJpaPropertyMap();
 		assertThat((String) jpaPropertyMap.get("hibernate.transaction.jta.platform"),
 				equalTo(TestJtaPlatform.class.getName()));
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,22 @@
 
 package org.springframework.boot.autoconfigure.web;
 
-import io.undertow.Undertow;
-
 import javax.servlet.Servlet;
 
+import io.undertow.Undertow;
 import org.apache.catalina.startup.Tomcat;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.Loader;
+import org.eclipse.jetty.webapp.WebAppContext;
+import org.xnio.SslClientAuthMode;
+
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -45,10 +48,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.ObjectUtils;
-import org.xnio.SslClientAuthMode;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for an embedded servlet containers.
@@ -57,7 +58,7 @@ import org.xnio.SslClientAuthMode;
  * @author Dave Syer
  * @author Ivan Sopov
  */
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)
 @Configuration
 @ConditionalOnWebApplication
 @Import(EmbeddedServletContainerCustomizerBeanPostProcessorRegistrar.class)
@@ -82,7 +83,8 @@ public class EmbeddedServletContainerAutoConfiguration {
 	 * Nested configuration if Jetty is being used.
 	 */
 	@Configuration
-	@ConditionalOnClass({ Servlet.class, Server.class, Loader.class })
+	@ConditionalOnClass({ Servlet.class, Server.class, Loader.class,
+			WebAppContext.class })
 	@ConditionalOnMissingBean(value = EmbeddedServletContainerFactory.class, search = SearchStrategy.CURRENT)
 	public static class EmbeddedJetty {
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,38 @@
 
 package org.springframework.boot.context.embedded.undertow;
 
-import io.undertow.Handlers;
-import io.undertow.Undertow;
-import io.undertow.Undertow.Builder;
-import io.undertow.server.HttpHandler;
-import io.undertow.servlet.api.DeploymentManager;
-
 import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.ServletException;
 
+import io.undertow.Handlers;
+import io.undertow.Undertow;
+import io.undertow.Undertow.Builder;
+import io.undertow.attribute.RequestHeaderAttribute;
+import io.undertow.predicate.Predicate;
+import io.undertow.predicate.Predicates;
+import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
+import io.undertow.server.handlers.encoding.ContentEncodingRepository;
+import io.undertow.server.handlers.encoding.EncodingHandler;
+import io.undertow.server.handlers.encoding.GzipEncodingProvider;
+import io.undertow.servlet.api.DeploymentManager;
+import io.undertow.util.Headers;
+import io.undertow.util.HttpString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.xnio.channels.BoundChannel;
+
+import org.springframework.boot.context.embedded.Compression;
 import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -41,106 +58,262 @@ import org.springframework.util.StringUtils;
  *
  * @author Ivan Sopov
  * @author Andy Wilkinson
+ * @author Eddú Meléndez
  * @since 1.2.0
- * @see UndertowEmbeddedServletContainer
+ * @see UndertowEmbeddedServletContainerFactory
  */
 public class UndertowEmbeddedServletContainer implements EmbeddedServletContainer {
 
 	private static final Log logger = LogFactory
 			.getLog(UndertowEmbeddedServletContainer.class);
 
-	private final DeploymentManager manager;
-
 	private final Builder builder;
+
+	private final DeploymentManager manager;
 
 	private final String contextPath;
 
-	private final int port;
+	private final boolean useForwardHeaders;
 
 	private final boolean autoStart;
+
+	private final Compression compression;
+
+	private final String serverHeader;
 
 	private Undertow undertow;
 
 	private boolean started = false;
 
 	public UndertowEmbeddedServletContainer(Builder builder, DeploymentManager manager,
-			String contextPath, int port, boolean autoStart) {
+			String contextPath, int port, boolean autoStart, Compression compression) {
+		this(builder, manager, contextPath, port, false, autoStart, compression);
+	}
+
+	public UndertowEmbeddedServletContainer(Builder builder, DeploymentManager manager,
+			String contextPath, int port, boolean useForwardHeaders, boolean autoStart,
+			Compression compression) {
+		this(builder, manager, contextPath, port, useForwardHeaders, autoStart,
+				compression, null);
+	}
+
+	public UndertowEmbeddedServletContainer(Builder builder, DeploymentManager manager,
+			String contextPath, int port, boolean useForwardHeaders, boolean autoStart,
+			Compression compression, String serverHeader) {
 		this.builder = builder;
 		this.manager = manager;
 		this.contextPath = contextPath;
-		this.port = port;
+		this.useForwardHeaders = useForwardHeaders;
 		this.autoStart = autoStart;
+		this.compression = compression;
+		this.serverHeader = serverHeader;
 	}
 
 	@Override
 	public synchronized void start() throws EmbeddedServletContainerException {
-		if (!this.autoStart) {
-			return;
-		}
-		if (this.undertow == null) {
-			this.undertow = createUndertowServer();
-		}
-		this.undertow.start();
-		this.started = true;
-		UndertowEmbeddedServletContainer.logger.info("Undertow started on port(s) "
-				+ getPortsDescription());
-	}
-
-	@SuppressWarnings("rawtypes")
-	private String getPortsDescription() {
 		try {
-			// Use reflection if possible to get the actual listener configuration
-			Field listenersField = ReflectionUtils.findField(Undertow.class, "listeners");
-			listenersField.setAccessible(true);
-			List listeners = (List) listenersField.get(this.undertow);
-			StringBuilder ports = new StringBuilder();
-			for (Object listener : listeners) {
-				Field portField = ReflectionUtils.findField(listener.getClass(), "port");
-				portField.setAccessible(true);
-				Field typeField = ReflectionUtils.findField(listener.getClass(), "type");
-				typeField.setAccessible(true);
-				ports.append(ports.length() == 0 ? "" : ", ");
-				ports.append(portField.get(listener) + " ("
-						+ typeField.get(listener).toString().toLowerCase() + ")");
+			if (!this.autoStart) {
+				return;
 			}
-			return ports.toString();
-		}
-		catch (Exception ex) {
-		}
-		// We at least know our port
-		return String.valueOf(this.port);
-	}
-
-	private Undertow createUndertowServer() {
-		try {
-			HttpHandler servletHandler = this.manager.start();
-			this.builder.setHandler(getContextHandler(servletHandler));
-			return this.builder.build();
+			if (this.undertow == null) {
+				this.undertow = createUndertowServer();
+			}
+			this.undertow.start();
+			this.started = true;
+			UndertowEmbeddedServletContainer.logger
+					.info("Undertow started on port(s) " + getPortsDescription());
 		}
 		catch (ServletException ex) {
 			throw new EmbeddedServletContainerException(
-					"Unable to start embdedded Undertow", ex);
+					"Unable to start embedded Undertow", ex);
 		}
 	}
 
-	private HttpHandler getContextHandler(HttpHandler servletHandler) {
-		if (StringUtils.isEmpty(this.contextPath)) {
-			return servletHandler;
+	private Undertow createUndertowServer() throws ServletException {
+		HttpHandler httpHandler = this.manager.start();
+		httpHandler = getContextHandler(httpHandler);
+		if (this.useForwardHeaders) {
+			httpHandler = Handlers.proxyPeerAddress(httpHandler);
 		}
-		return Handlers.path().addPrefixPath(this.contextPath, servletHandler);
+		if (StringUtils.hasText(this.serverHeader)) {
+			httpHandler = Handlers.header(httpHandler, "Server", this.serverHeader);
+		}
+		this.builder.setHandler(httpHandler);
+		return this.builder.build();
+	}
+
+	private HttpHandler getContextHandler(HttpHandler httpHandler) {
+		HttpHandler contextHandler = configurationCompressionIfNecessary(httpHandler);
+		if (StringUtils.isEmpty(this.contextPath)) {
+			return contextHandler;
+		}
+		return Handlers.path().addPrefixPath(this.contextPath, contextHandler);
+	}
+
+	private HttpHandler configurationCompressionIfNecessary(HttpHandler httpHandler) {
+		if (this.compression == null || !this.compression.getEnabled()) {
+			return httpHandler;
+		}
+		ContentEncodingRepository repository = new ContentEncodingRepository();
+		repository.addEncodingHandler("gzip", new GzipEncodingProvider(), 50,
+				Predicates.and(getCompressionPredicates(this.compression)));
+		return new EncodingHandler(repository).setNext(httpHandler);
+	}
+
+	private Predicate[] getCompressionPredicates(Compression compression) {
+		List<Predicate> predicates = new ArrayList<Predicate>();
+		predicates.add(new MaxSizePredicate(compression.getMinResponseSize()));
+		predicates.add(new CompressibleMimeTypePredicate(compression.getMimeTypes()));
+		if (compression.getExcludedUserAgents() != null) {
+			for (String agent : compression.getExcludedUserAgents()) {
+				RequestHeaderAttribute agentHeader = new RequestHeaderAttribute(
+						new HttpString(HttpHeaders.USER_AGENT));
+				predicates.add(Predicates.not(Predicates.regex(agentHeader, agent)));
+			}
+		}
+		return predicates.toArray(new Predicate[predicates.size()]);
+	}
+
+	private String getPortsDescription() {
+		List<Port> ports = getPorts();
+		if (!ports.isEmpty()) {
+			return StringUtils.collectionToDelimitedString(ports, " ");
+		}
+		return "unknown";
+	}
+
+	private List<Port> getPorts() {
+		List<Port> ports = new ArrayList<Port>();
+		try {
+			if (!this.autoStart) {
+				ports.add(new Port(-1, "unknown"));
+			}
+			else {
+				for (BoundChannel channel : extractChannels()) {
+					ports.add(getPortFromChannel(channel));
+				}
+			}
+		}
+		catch (Exception ex) {
+			// Continue
+		}
+		return ports;
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<BoundChannel> extractChannels() {
+		Field channelsField = ReflectionUtils.findField(Undertow.class, "channels");
+		ReflectionUtils.makeAccessible(channelsField);
+		return (List<BoundChannel>) ReflectionUtils.getField(channelsField,
+				this.undertow);
+	}
+
+	private Port getPortFromChannel(BoundChannel channel) {
+		String protocol = ReflectionUtils.findField(channel.getClass(), "ssl") != null
+				? "https" : "http";
+		SocketAddress socketAddress = channel.getLocalAddress();
+		if (socketAddress instanceof InetSocketAddress) {
+			return new Port(((InetSocketAddress) socketAddress).getPort(), protocol);
+		}
+		return null;
 	}
 
 	@Override
 	public synchronized void stop() throws EmbeddedServletContainerException {
 		if (this.started) {
-			this.started = false;
-			this.undertow.stop();
+			try {
+				this.started = false;
+				this.manager.stop();
+				this.undertow.stop();
+			}
+			catch (Exception ex) {
+				throw new EmbeddedServletContainerException("Unable to stop undertow",
+						ex);
+			}
 		}
 	}
 
 	@Override
 	public int getPort() {
-		return this.port;
+		List<Port> ports = getPorts();
+		if (ports.isEmpty()) {
+			return 0;
+		}
+		return ports.get(0).getNumber();
 	}
 
+	/**
+	 * An active undertow port.
+	 */
+	private final static class Port {
+
+		private final int number;
+
+		private final String protocol;
+
+		private Port(int number, String protocol) {
+			this.number = number;
+			this.protocol = protocol;
+		}
+
+		public int getNumber() {
+			return this.number;
+		}
+
+		@Override
+		public String toString() {
+			return this.number + " (" + this.protocol + ")";
+		}
+
+	}
+
+	private static class CompressibleMimeTypePredicate implements Predicate {
+
+		private final List<MimeType> mimeTypes;
+
+		CompressibleMimeTypePredicate(String[] mimeTypes) {
+			this.mimeTypes = new ArrayList<MimeType>(mimeTypes.length);
+			for (String mimeTypeString : mimeTypes) {
+				this.mimeTypes.add(MimeTypeUtils.parseMimeType(mimeTypeString));
+			}
+		}
+
+		@Override
+		public boolean resolve(HttpServerExchange value) {
+			String contentType = value.getResponseHeaders()
+					.getFirst(HttpHeaders.CONTENT_TYPE);
+			if (contentType != null) {
+				for (MimeType mimeType : this.mimeTypes) {
+					if (mimeType
+							.isCompatibleWith(MimeTypeUtils.parseMimeType(contentType))) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+	}
+
+	/**
+	 * Predicate that returns true if the Content-Size of a request is above a given value
+	 * or is missing.
+	 */
+	private static class MaxSizePredicate implements Predicate {
+
+		private final Predicate maxContentSize;
+
+		MaxSizePredicate(int size) {
+			this.maxContentSize = Predicates.maxContentSize(size);
+		}
+
+		@Override
+		public boolean resolve(HttpServerExchange value) {
+			if (value.getResponseHeaders().contains(Headers.CONTENT_LENGTH)) {
+				return this.maxContentSize.resolve(value);
+			}
+			return true;
+		}
+
+	}
 }

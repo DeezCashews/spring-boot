@@ -22,10 +22,11 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hornetq.core.remoting.impl.invm.TransportConstants;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Configuration properties for HornetQ
+ * Configuration properties for HornetQ.
  *
  * @author Stephane Nicoll
  * @since 1.1.0
@@ -107,17 +108,17 @@ public class HornetQProperties {
 		private String dataDirectory;
 
 		/**
-		 * Comma-separate list of queues to create on startup.
+		 * Comma-separated list of queues to create on startup.
 		 */
 		private String[] queues = new String[0];
 
 		/**
-		 * Comma-separate list of topics to create on startup.
+		 * Comma-separated list of topics to create on startup.
 		 */
 		private String[] topics = new String[0];
 
 		/**
-		 * Cluster password. Randomly generated on startup by default
+		 * Cluster password. Randomly generated on startup by default.
 		 */
 		private String clusterPassword = UUID.randomUUID().toString();
 

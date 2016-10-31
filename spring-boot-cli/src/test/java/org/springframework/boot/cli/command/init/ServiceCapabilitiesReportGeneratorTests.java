@@ -21,7 +21,7 @@ import java.io.IOException;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -37,7 +37,8 @@ public class ServiceCapabilitiesReportGeneratorTests extends AbstractHttpClientM
 	@Test
 	public void listMetadataFromServer() throws IOException {
 		mockSuccessfulMetadataTextGet();
-		String expected = new String(readClasspathResource("metadata/service-metadata-2.1.0.txt"));
+		String expected = new String(
+				readClasspathResource("metadata/service-metadata-2.1.0.txt"));
 		String content = this.command.generate("http://localhost");
 		assertThat(content, equalTo(expected));
 	}

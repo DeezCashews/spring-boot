@@ -26,19 +26,26 @@ import org.hamcrest.Matcher;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import org.springframework.beans.DirectFieldAccessor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 /**
- * Tests for {@link SpringBootServletInitializerTests}.
+ * Tests for {@link SpringBootServletInitializer}.
  *
  * @author Phillip Webb
+ * @author Andy Wilkinson
  */
 public class SpringBootServletInitializerTests {
 
@@ -72,6 +79,40 @@ public class SpringBootServletInitializerTests {
 				equalToSet(Config.class, ErrorPageFilter.class));
 	}
 
+	@Test
+	public void applicationBuilderCanBeCustomized() throws Exception {
+		CustomSpringBootServletInitializer servletInitializer = new CustomSpringBootServletInitializer();
+		servletInitializer.createRootApplicationContext(this.servletContext);
+		assertThat(servletInitializer.applicationBuilder.built, equalTo(true));
+	}
+
+	@Test
+	@SuppressWarnings("rawtypes")
+	public void mainClassHasSensibleDefault() throws Exception {
+		new WithConfigurationAnnotation()
+				.createRootApplicationContext(this.servletContext);
+		Class mainApplicationClass = (Class<?>) new DirectFieldAccessor(this.application)
+				.getPropertyValue("mainApplicationClass");
+		assertThat(mainApplicationClass,
+				is(equalTo((Class) WithConfigurationAnnotation.class)));
+	}
+
+	@Test
+	public void withErrorPageFilterNotRegistered() throws Exception {
+		new WithErrorPageFilterNotRegistered()
+				.createRootApplicationContext(this.servletContext);
+		assertThat(this.application.getSources(),
+				equalToSet(WithErrorPageFilterNotRegistered.class));
+	}
+
+	@Test
+	public void servletContextApplicationListenerIsAdded() {
+		new WithConfiguredSource().createRootApplicationContext(this.servletContext);
+		assertThat(this.application.getListeners(),
+				hasItem((Matcher<? super ApplicationListener<?>>) instanceOf(
+						ServletContextApplicationListener.class)));
+	}
+
 	private Matcher<? super Set<Object>> equalToSet(Object... items) {
 		Set<Object> set = new LinkedHashSet<Object>();
 		Collections.addAll(set, items);
@@ -88,6 +129,23 @@ public class SpringBootServletInitializerTests {
 
 	}
 
+	private class CustomSpringBootServletInitializer
+			extends MockSpringBootServletInitializer {
+
+		private final CustomSpringApplicationBuilder applicationBuilder = new CustomSpringApplicationBuilder();
+
+		@Override
+		protected SpringApplicationBuilder createSpringApplicationBuilder() {
+			return this.applicationBuilder;
+		}
+
+		@Override
+		protected SpringApplicationBuilder configure(
+				SpringApplicationBuilder application) {
+			return application.sources(Config.class);
+		}
+	}
+
 	@Configuration
 	public class WithConfigurationAnnotation extends MockSpringBootServletInitializer {
 	}
@@ -95,14 +153,37 @@ public class SpringBootServletInitializerTests {
 	public class WithConfiguredSource extends MockSpringBootServletInitializer {
 
 		@Override
-		protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+		protected SpringApplicationBuilder configure(
+				SpringApplicationBuilder application) {
 			return application.sources(Config.class);
 		}
 
 	}
 
 	@Configuration
+	public class WithErrorPageFilterNotRegistered
+			extends MockSpringBootServletInitializer {
+
+		public WithErrorPageFilterNotRegistered() {
+			setRegisterErrorPageFilter(false);
+		}
+
+	}
+
+	@Configuration
 	public static class Config {
+
+	}
+
+	private static class CustomSpringApplicationBuilder extends SpringApplicationBuilder {
+
+		private boolean built;
+
+		@Override
+		public SpringApplication build() {
+			this.built = true;
+			return super.build();
+		}
 
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.net.URL;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
 import org.springframework.boot.loader.jar.JarFile;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -35,6 +36,7 @@ import static org.junit.Assert.assertTrue;
  *
  * @author Dave Syer
  * @author Phillip Webb
+ * @author Andy Wilkinson
  */
 @SuppressWarnings("resource")
 public class LaunchedURLClassLoaderTests {
@@ -46,44 +48,44 @@ public class LaunchedURLClassLoaderTests {
 	public void resolveResourceFromWindowsFilesystem() throws Exception {
 		// This path is invalid - it should return null even on Windows.
 		// A regular URLClassLoader will deal with it gracefully.
-		assertNull(getClass().getClassLoader().getResource(
-				"c:\\Users\\user\\bar.properties"));
-		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(new URL[] { new URL(
-				"jar:file:src/test/resources/jars/app.jar!/") }, getClass()
-				.getClassLoader());
+		assertNull(getClass().getClassLoader()
+				.getResource("c:\\Users\\user\\bar.properties"));
+		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(
+				new URL[] { new URL("jar:file:src/test/resources/jars/app.jar!/") },
+				getClass().getClassLoader());
 		// So we should too...
 		assertNull(loader.getResource("c:\\Users\\user\\bar.properties"));
 	}
 
 	@Test
 	public void resolveResourceFromArchive() throws Exception {
-		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(new URL[] { new URL(
-				"jar:file:src/test/resources/jars/app.jar!/") }, getClass()
-				.getClassLoader());
+		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(
+				new URL[] { new URL("jar:file:src/test/resources/jars/app.jar!/") },
+				getClass().getClassLoader());
 		assertNotNull(loader.getResource("demo/Application.java"));
 	}
 
 	@Test
 	public void resolveResourcesFromArchive() throws Exception {
-		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(new URL[] { new URL(
-				"jar:file:src/test/resources/jars/app.jar!/") }, getClass()
-				.getClassLoader());
+		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(
+				new URL[] { new URL("jar:file:src/test/resources/jars/app.jar!/") },
+				getClass().getClassLoader());
 		assertTrue(loader.getResources("demo/Application.java").hasMoreElements());
 	}
 
 	@Test
 	public void resolveRootPathFromArchive() throws Exception {
-		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(new URL[] { new URL(
-				"jar:file:src/test/resources/jars/app.jar!/") }, getClass()
-				.getClassLoader());
+		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(
+				new URL[] { new URL("jar:file:src/test/resources/jars/app.jar!/") },
+				getClass().getClassLoader());
 		assertNotNull(loader.getResource(""));
 	}
 
 	@Test
 	public void resolveRootResourcesFromArchive() throws Exception {
-		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(new URL[] { new URL(
-				"jar:file:src/test/resources/jars/app.jar!/") }, getClass()
-				.getClassLoader());
+		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(
+				new URL[] { new URL("jar:file:src/test/resources/jars/app.jar!/") },
+				getClass().getClassLoader());
 		assertTrue(loader.getResources("").hasMoreElements());
 	}
 
@@ -98,6 +100,25 @@ public class LaunchedURLClassLoaderTests {
 		URL resource = loader.getResource("nested.jar!/3.dat");
 		assertThat(resource.toString(), equalTo(url + "nested.jar!/3.dat"));
 		assertThat(resource.openConnection().getInputStream().read(), equalTo(3));
+	}
+
+	@Test
+	public void resolveFromNestedWhileThreadIsInterrupted() throws Exception {
+		File file = this.temporaryFolder.newFile();
+		TestJarCreator.createTestJar(file);
+		JarFile jarFile = new JarFile(file);
+		URL url = jarFile.getUrl();
+		LaunchedURLClassLoader loader = new LaunchedURLClassLoader(new URL[] { url },
+				null);
+		try {
+			Thread.currentThread().interrupt();
+			URL resource = loader.getResource("nested.jar!/3.dat");
+			assertThat(resource.toString(), equalTo(url + "nested.jar!/3.dat"));
+			assertThat(resource.openConnection().getInputStream().read(), equalTo(3));
+		}
+		finally {
+			Thread.interrupted();
+		}
 	}
 
 }
