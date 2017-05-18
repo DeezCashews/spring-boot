@@ -35,3 +35,4 @@ questions_url: http://spring.io/questions
 
 version: 1.0.0.BUILD-SNAPSHOT
 exclude: [code]
+theme: jekyll-theme-cayman
