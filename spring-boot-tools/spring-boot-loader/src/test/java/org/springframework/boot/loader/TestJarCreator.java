@@ -50,31 +50,25 @@ public abstract class TestJarCreator {
 			writeDirEntry(jarOutputStream, "special/");
 			writeEntry(jarOutputStream, "special/\u00EB.dat", '\u00EB');
 
-			writeNestedEntry("nested.jar", unpackNested, jarOutputStream);
-			writeNestedEntry("another-nested.jar", unpackNested, jarOutputStream);
+			JarEntry nestedEntry = new JarEntry("nested.jar");
+			byte[] nestedJarData = getNestedJarData();
+			nestedEntry.setSize(nestedJarData.length);
+			nestedEntry.setCompressedSize(nestedJarData.length);
+			if (unpackNested) {
+				nestedEntry.setComment("UNPACK:0000000000000000000000000000000000000000");
+			}
+			CRC32 crc32 = new CRC32();
+			crc32.update(nestedJarData);
+			nestedEntry.setCrc(crc32.getValue());
+
+			nestedEntry.setMethod(ZipEntry.STORED);
+			jarOutputStream.putNextEntry(nestedEntry);
+			jarOutputStream.write(nestedJarData);
+			jarOutputStream.closeEntry();
 		}
 		finally {
 			jarOutputStream.close();
 		}
-	}
-
-	private static void writeNestedEntry(String name, boolean unpackNested,
-			JarOutputStream jarOutputStream) throws Exception, IOException {
-		JarEntry nestedEntry = new JarEntry(name);
-		byte[] nestedJarData = getNestedJarData();
-		nestedEntry.setSize(nestedJarData.length);
-		nestedEntry.setCompressedSize(nestedJarData.length);
-		if (unpackNested) {
-			nestedEntry.setComment("UNPACK:0000000000000000000000000000000000000000");
-		}
-		CRC32 crc32 = new CRC32();
-		crc32.update(nestedJarData);
-		nestedEntry.setCrc(crc32.getValue());
-
-		nestedEntry.setMethod(ZipEntry.STORED);
-		jarOutputStream.putNextEntry(nestedEntry);
-		jarOutputStream.write(nestedJarData);
-		jarOutputStream.closeEntry();
 	}
 
 	private static byte[] getNestedJarData() throws Exception {

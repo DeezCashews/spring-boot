@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,23 +19,22 @@ import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import sample.jpa.SampleJpaApplication;
 import sample.jpa.domain.Note;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Integration tests for {@link JpaNoteRepository}.
  *
  * @author Andy Wilkinson
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@Transactional
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringApplicationConfiguration(classes = SampleJpaApplication.class)
 public class JpaNoteRepositoryIntegrationTests {
 
 	@Autowired
@@ -44,10 +43,7 @@ public class JpaNoteRepositoryIntegrationTests {
 	@Test
 	public void findsAllNotes() {
 		List<Note> notes = this.repository.findAll();
-		assertThat(notes).hasSize(4);
-		for (Note note : notes) {
-			assertThat(note.getTags().size()).isGreaterThan(0);
-		}
+		assertEquals(4, notes.size());
 	}
 
 }

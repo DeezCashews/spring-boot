@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,11 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.BDDMockito.given;
 
 /**
@@ -33,6 +34,7 @@ import static org.mockito.BDDMockito.given;
  *
  * @author Mattias Severson
  */
+@RunWith(MockitoJUnitRunner.class)
 public class DiskSpaceHealthIndicatorTests {
 
 	static final long THRESHOLD_BYTES = 1024;
@@ -47,37 +49,31 @@ public class DiskSpaceHealthIndicatorTests {
 
 	@Before
 	public void setUp() throws Exception {
-		MockitoAnnotations.initMocks(this);
 		given(this.fileMock.exists()).willReturn(true);
 		given(this.fileMock.canRead()).willReturn(true);
-		this.healthIndicator = new DiskSpaceHealthIndicator(
-				createProperties(this.fileMock, THRESHOLD_BYTES));
+		this.healthIndicator = new DiskSpaceHealthIndicator(createProperties(
+				this.fileMock, THRESHOLD_BYTES));
 	}
 
 	@Test
 	public void diskSpaceIsUp() throws Exception {
 		given(this.fileMock.getFreeSpace()).willReturn(THRESHOLD_BYTES + 10);
-		given(this.fileMock.getTotalSpace()).willReturn(THRESHOLD_BYTES * 10);
 		Health health = this.healthIndicator.health();
-		assertThat(health.getStatus()).isEqualTo(Status.UP);
-		assertThat(health.getDetails().get("threshold")).isEqualTo(THRESHOLD_BYTES);
-		assertThat(health.getDetails().get("free")).isEqualTo(THRESHOLD_BYTES + 10);
-		assertThat(health.getDetails().get("total")).isEqualTo(THRESHOLD_BYTES * 10);
+		assertEquals(Status.UP, health.getStatus());
+		assertEquals(THRESHOLD_BYTES, health.getDetails().get("threshold"));
+		assertEquals(THRESHOLD_BYTES + 10, health.getDetails().get("free"));
 	}
 
 	@Test
 	public void diskSpaceIsDown() throws Exception {
 		given(this.fileMock.getFreeSpace()).willReturn(THRESHOLD_BYTES - 10);
-		given(this.fileMock.getTotalSpace()).willReturn(THRESHOLD_BYTES * 10);
 		Health health = this.healthIndicator.health();
-		assertThat(health.getStatus()).isEqualTo(Status.DOWN);
-		assertThat(health.getDetails().get("threshold")).isEqualTo(THRESHOLD_BYTES);
-		assertThat(health.getDetails().get("free")).isEqualTo(THRESHOLD_BYTES - 10);
-		assertThat(health.getDetails().get("total")).isEqualTo(THRESHOLD_BYTES * 10);
+		assertEquals(Status.DOWN, health.getStatus());
+		assertEquals(THRESHOLD_BYTES, health.getDetails().get("threshold"));
+		assertEquals(THRESHOLD_BYTES - 10, health.getDetails().get("free"));
 	}
 
-	private DiskSpaceHealthIndicatorProperties createProperties(File path,
-			long threshold) {
+	private DiskSpaceHealthIndicatorProperties createProperties(File path, long threshold) {
 		DiskSpaceHealthIndicatorProperties properties = new DiskSpaceHealthIndicatorProperties();
 		properties.setPath(path);
 		properties.setThreshold(threshold);

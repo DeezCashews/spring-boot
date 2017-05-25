@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,10 @@ import java.util.jar.JarOutputStream;
 
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link PropertiesMergingResourceTransformer}.
@@ -35,10 +38,10 @@ public class PropertiesMergingResourceTransformerTests {
 
 	@Test
 	public void testProcess() throws Exception {
-		assertThat(this.transformer.hasTransformedResource()).isFalse();
+		assertFalse(this.transformer.hasTransformedResource());
 		this.transformer.processResource("foo",
 				new ByteArrayInputStream("foo=bar".getBytes()), null);
-		assertThat(this.transformer.hasTransformedResource()).isTrue();
+		assertTrue(this.transformer.hasTransformedResource());
 	}
 
 	@Test
@@ -47,7 +50,7 @@ public class PropertiesMergingResourceTransformerTests {
 				new ByteArrayInputStream("foo=bar".getBytes()), null);
 		this.transformer.processResource("bar",
 				new ByteArrayInputStream("foo=spam".getBytes()), null);
-		assertThat(this.transformer.getData().getProperty("foo")).isEqualTo("bar,spam");
+		assertEquals("bar,spam", this.transformer.getData().getProperty("foo"));
 	}
 
 	@Test
@@ -60,8 +63,8 @@ public class PropertiesMergingResourceTransformerTests {
 		this.transformer.modifyOutputStream(os);
 		os.flush();
 		os.close();
-		assertThat(out.toByteArray()).isNotNull();
-		assertThat(out.toByteArray().length > 0).isTrue();
+		assertNotNull(out.toByteArray());
+		assertTrue(out.toByteArray().length > 0);
 	}
 
 }

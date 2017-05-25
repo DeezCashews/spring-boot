@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@ package org.springframework.boot.cli.infrastructure;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -29,11 +27,8 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import org.springframework.util.Assert;
-import org.springframework.util.StreamUtils;
 
 /**
  * Utility to invoke the command line in the same way as a user would, i.e. via the shell
@@ -62,52 +57,21 @@ public final class CommandLineInvoker {
 		List<String> command = new ArrayList<String>();
 		command.add(findLaunchScript().getAbsolutePath());
 		command.addAll(Arrays.asList(args));
-		ProcessBuilder processBuilder = new ProcessBuilder(command)
-				.directory(this.workingDirectory);
-		processBuilder.environment().remove("JAVA_OPTS");
-		return processBuilder.start();
+		return new ProcessBuilder(command).directory(this.workingDirectory).start();
 	}
 
-	private File findLaunchScript() throws IOException {
-		File unpacked = new File("target/unpacked-cli");
-		if (!unpacked.isDirectory()) {
-			File zip = new File("target").listFiles(new FileFilter() {
-
-				@Override
-				public boolean accept(File pathname) {
-					return pathname.getName().endsWith("-bin.zip");
-				}
-
-			})[0];
-			ZipInputStream input = new ZipInputStream(new FileInputStream(zip));
-			try {
-				ZipEntry entry;
-				while ((entry = input.getNextEntry()) != null) {
-					File file = new File(unpacked, entry.getName());
-					if (entry.isDirectory()) {
-						file.mkdirs();
-					}
-					else {
-						file.getParentFile().mkdirs();
-						FileOutputStream output = new FileOutputStream(file);
-						try {
-							StreamUtils.copy(input, output);
-							if (entry.getName().endsWith("/bin/spring")) {
-								file.setExecutable(true);
-							}
-						}
-						finally {
-							output.close();
-						}
-					}
-				}
+	private File findLaunchScript() {
+		File dir = new File("target");
+		dir = dir.listFiles(new FileFilter() {
+			@Override
+			public boolean accept(File pathname) {
+				return pathname.isDirectory() && pathname.getName().contains("-bin");
 			}
-			finally {
-				input.close();
-			}
-		}
-		File bin = new File(unpacked.listFiles()[0], "bin");
-		File launchScript = new File(bin, isWindows() ? "spring.bat" : "spring");
+		})[0];
+		dir = new File(dir, dir.getName().replace("-bin", "")
+				.replace("spring-boot-cli", "spring"));
+		dir = new File(dir, "bin");
+		File launchScript = new File(dir, isWindows() ? "spring.bat" : "spring");
 		Assert.state(launchScript.exists() && launchScript.isFile(),
 				"Could not find CLI launch script " + launchScript.getAbsolutePath());
 		return launchScript;
@@ -126,25 +90,14 @@ public final class CommandLineInvoker {
 
 		private final StringBuffer out = new StringBuffer();
 
-		private final StringBuffer combined = new StringBuffer();
-
 		private final Process process;
-
-		private final List<Thread> streamReaders = new ArrayList<Thread>();
 
 		public Invocation(Process process) {
 			this.process = process;
-			this.streamReaders.add(new Thread(new StreamReadingRunnable(
-					this.process.getErrorStream(), this.err, this.combined)));
-			this.streamReaders.add(new Thread(new StreamReadingRunnable(
-					this.process.getInputStream(), this.out, this.combined)));
-			for (Thread streamReader : this.streamReaders) {
-				streamReader.start();
-			}
-		}
-
-		public String getOutput() {
-			return postProcessLines(getLines(this.combined));
+			new Thread(new StreamReadingRunnable(this.process.getErrorStream(), this.err))
+					.start();
+			new Thread(new StreamReadingRunnable(this.process.getInputStream(), this.out))
+					.start();
 		}
 
 		public String getErrorOutput() {
@@ -177,9 +130,7 @@ public final class CommandLineInvoker {
 			List<String> lines = new ArrayList<String>();
 			try {
 				while ((line = reader.readLine()) != null) {
-					if (!line.startsWith("Picked up ")) {
-						lines.add(line);
-					}
+					lines.add(line);
 				}
 			}
 			catch (IOException ex) {
@@ -189,9 +140,6 @@ public final class CommandLineInvoker {
 		}
 
 		public int await() throws InterruptedException {
-			for (Thread streamReader : this.streamReaders) {
-				streamReader.join();
-			}
 			return this.process.waitFor();
 		}
 
@@ -202,13 +150,13 @@ public final class CommandLineInvoker {
 
 			private final InputStream stream;
 
-			private final StringBuffer[] outputs;
+			private final StringBuffer output;
 
 			private final byte[] buffer = new byte[4096];
 
-			private StreamReadingRunnable(InputStream stream, StringBuffer... outputs) {
+			private StreamReadingRunnable(InputStream stream, StringBuffer buffer) {
 				this.stream = stream;
-				this.outputs = outputs;
+				this.output = buffer;
 			}
 
 			@Override
@@ -216,16 +164,13 @@ public final class CommandLineInvoker {
 				int read;
 				try {
 					while ((read = this.stream.read(this.buffer)) > 0) {
-						for (StringBuffer output : this.outputs) {
-							output.append(new String(this.buffer, 0, read));
-						}
+						this.output.append(new String(this.buffer, 0, read));
 					}
 				}
 				catch (IOException ex) {
 					// Allow thread to die
 				}
 			}
-
 		}
 
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,15 @@ package sample.flyway;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringApplicationConfiguration(classes = SampleFlywayApplication.class)
 public class SampleFlywayApplicationTests {
 
 	@Autowired
@@ -35,8 +34,8 @@ public class SampleFlywayApplicationTests {
 
 	@Test
 	public void testDefaultSettings() throws Exception {
-		assertThat(this.template.queryForObject("SELECT COUNT(*) from PERSON",
-				Integer.class)).isEqualTo(1);
+		assertEquals(new Integer(1), this.template.queryForObject(
+				"SELECT COUNT(*) from PERSON", Integer.class));
 	}
 
 }

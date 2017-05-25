@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,14 @@
 
 package org.springframework.boot;
 
-import org.junit.After;
 import org.junit.Test;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for {@link SpringApplication} {@link SpringApplication#setSources(java.util.Set)
@@ -35,29 +33,21 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class OverrideSourcesTests {
 
-	private ConfigurableApplicationContext context;
-
-	@After
-	public void cleanUp() {
-		if (this.context != null) {
-			this.context.close();
-		}
-	}
-
 	@Test
 	public void beanInjectedToMainConfiguration() {
-		this.context = SpringApplication.run(new Object[] { MainConfiguration.class },
+		ApplicationContext context = SpringApplication.run(
+				new Object[] { MainConfiguration.class },
 				new String[] { "--spring.main.web_environment=false" });
-		assertThat(this.context.getBean(Service.class).bean.name).isEqualTo("foo");
+		assertEquals("foo", context.getBean(Service.class).bean.name);
 	}
 
 	@Test
 	public void primaryBeanInjectedProvingSourcesNotOverridden() {
-		this.context = SpringApplication.run(
-				new Object[] { MainConfiguration.class, TestConfiguration.class },
-				new String[] { "--spring.main.web_environment=false",
-						"--spring.main.sources=org.springframework.boot.OverrideSourcesTests.MainConfiguration" });
-		assertThat(this.context.getBean(Service.class).bean.name).isEqualTo("bar");
+		ApplicationContext context = SpringApplication
+				.run(new Object[] { MainConfiguration.class, TestConfiguration.class },
+						new String[] { "--spring.main.web_environment=false",
+								"--spring.main.sources=org.springframework.boot.OverrideSourcesTests.MainConfiguration" });
+		assertEquals("bar", context.getBean(Service.class).bean.name);
 	}
 
 	@Configuration
@@ -87,10 +77,8 @@ public class OverrideSourcesTests {
 	}
 
 	protected static class Service {
-
 		@Autowired
 		private TestBean bean;
-
 	}
 
 	protected static class TestBean {
@@ -102,5 +90,4 @@ public class OverrideSourcesTests {
 		}
 
 	}
-
 }

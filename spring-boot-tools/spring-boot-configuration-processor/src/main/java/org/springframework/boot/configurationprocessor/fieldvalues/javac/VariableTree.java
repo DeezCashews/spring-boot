@@ -29,7 +29,7 @@ import javax.lang.model.element.Modifier;
  */
 class VariableTree extends ReflectionWrapper {
 
-	VariableTree(Object instance) {
+	public VariableTree(Object instance) {
 		super(instance);
 	}
 

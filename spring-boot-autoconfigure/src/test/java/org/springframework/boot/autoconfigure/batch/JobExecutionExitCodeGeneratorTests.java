@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@
 package org.springframework.boot.autoconfigure.batch;
 
 import org.junit.Test;
-
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for {@link JobExecutionExitCodeGenerator}.
@@ -35,7 +34,7 @@ public class JobExecutionExitCodeGeneratorTests {
 	@Test
 	public void testExitCodeForRunning() {
 		this.generator.onApplicationEvent(new JobExecutionEvent(new JobExecution(0L)));
-		assertThat(this.generator.getExitCode()).isEqualTo(1);
+		assertEquals(1, this.generator.getExitCode());
 	}
 
 	@Test
@@ -43,7 +42,7 @@ public class JobExecutionExitCodeGeneratorTests {
 		JobExecution execution = new JobExecution(0L);
 		execution.setStatus(BatchStatus.COMPLETED);
 		this.generator.onApplicationEvent(new JobExecutionEvent(execution));
-		assertThat(this.generator.getExitCode()).isEqualTo(0);
+		assertEquals(0, this.generator.getExitCode());
 	}
 
 	@Test
@@ -51,7 +50,7 @@ public class JobExecutionExitCodeGeneratorTests {
 		JobExecution execution = new JobExecution(0L);
 		execution.setStatus(BatchStatus.FAILED);
 		this.generator.onApplicationEvent(new JobExecutionEvent(execution));
-		assertThat(this.generator.getExitCode()).isEqualTo(5);
+		assertEquals(5, this.generator.getExitCode());
 	}
 
 }

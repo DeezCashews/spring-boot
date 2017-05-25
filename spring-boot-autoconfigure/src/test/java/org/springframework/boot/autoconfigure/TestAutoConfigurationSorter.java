@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,7 @@
 
 package org.springframework.boot.autoconfigure;
 
-import java.util.Properties;
-
-import org.springframework.core.type.classreading.MetadataReaderFactory;
+import org.springframework.core.io.ResourceLoader;
 
 /**
  * Public version of {@link AutoConfigurationSorter} for use in tests.
@@ -27,9 +25,8 @@ import org.springframework.core.type.classreading.MetadataReaderFactory;
  */
 public class TestAutoConfigurationSorter extends AutoConfigurationSorter {
 
-	public TestAutoConfigurationSorter(MetadataReaderFactory metadataReaderFactory) {
-		super(metadataReaderFactory,
-				AutoConfigurationMetadataLoader.loadMetadata(new Properties()));
+	public TestAutoConfigurationSorter(ResourceLoader resourceLoader) {
+		super(resourceLoader);
 	}
 
 }

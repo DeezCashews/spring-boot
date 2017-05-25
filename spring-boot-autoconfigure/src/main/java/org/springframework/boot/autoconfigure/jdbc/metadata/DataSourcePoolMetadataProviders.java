@@ -18,7 +18,6 @@ package org.springframework.boot.autoconfigure.jdbc.metadata;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -37,13 +36,11 @@ public class DataSourcePoolMetadataProviders implements DataSourcePoolMetadataPr
 	/**
 	 * Create a {@link DataSourcePoolMetadataProviders} instance with an initial
 	 * collection of delegates to use.
-	 * @param providers the data source pool metadata providers
+	 * @param providers the data source pool metdata providers
 	 */
 	public DataSourcePoolMetadataProviders(
 			Collection<? extends DataSourcePoolMetadataProvider> providers) {
-		this.providers = (providers == null
-				? Collections.<DataSourcePoolMetadataProvider>emptyList()
-				: new ArrayList<DataSourcePoolMetadataProvider>(providers));
+		this.providers = new ArrayList<DataSourcePoolMetadataProvider>(providers);
 	}
 
 	@Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,10 @@ package org.springframework.boot.loader.tools;
  */
 public interface LibraryScope {
 
-	@Override
-	String toString();
-
 	/**
 	 * The library is used at compile time and runtime.
 	 */
-	LibraryScope COMPILE = new LibraryScope() {
+	public static final LibraryScope COMPILE = new LibraryScope() {
 
 		@Override
 		public String toString() {
@@ -43,7 +40,7 @@ public interface LibraryScope {
 	/**
 	 * The library is used at runtime but not needed for compile.
 	 */
-	LibraryScope RUNTIME = new LibraryScope() {
+	public static final LibraryScope RUNTIME = new LibraryScope() {
 
 		@Override
 		public String toString() {
@@ -55,7 +52,7 @@ public interface LibraryScope {
 	/**
 	 * The library is needed for compile but is usually provided when running.
 	 */
-	LibraryScope PROVIDED = new LibraryScope() {
+	public static final LibraryScope PROVIDED = new LibraryScope() {
 
 		@Override
 		public String toString() {
@@ -67,7 +64,7 @@ public interface LibraryScope {
 	/**
 	 * Marker for custom scope when custom configuration is used.
 	 */
-	LibraryScope CUSTOM = new LibraryScope() {
+	public static final LibraryScope CUSTOM = new LibraryScope() {
 
 		@Override
 		public String toString() {

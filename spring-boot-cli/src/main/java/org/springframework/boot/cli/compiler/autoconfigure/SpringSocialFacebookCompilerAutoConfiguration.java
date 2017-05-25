@@ -19,7 +19,6 @@ package org.springframework.boot.cli.compiler.autoconfigure;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
-
 import org.springframework.boot.cli.compiler.AstUtils;
 import org.springframework.boot.cli.compiler.CompilerAutoConfiguration;
 import org.springframework.boot.cli.compiler.DependencyCustomizer;
@@ -30,8 +29,8 @@ import org.springframework.boot.cli.compiler.DependencyCustomizer;
  * @author Craig Walls
  * @since 1.1.0
  */
-public class SpringSocialFacebookCompilerAutoConfiguration
-		extends CompilerAutoConfiguration {
+public class SpringSocialFacebookCompilerAutoConfiguration extends
+		CompilerAutoConfiguration {
 
 	@Override
 	public boolean matches(ClassNode classNode) {
@@ -41,9 +40,9 @@ public class SpringSocialFacebookCompilerAutoConfiguration
 	@Override
 	public void applyDependencies(DependencyCustomizer dependencies)
 			throws CompilationFailedException {
-		dependencies
-				.ifAnyMissingClasses("org.springframework.social.facebook.api.Facebook")
-				.add("spring-boot-starter-social-facebook");
+		dependencies.ifAnyMissingClasses(
+				"org.springframework.social.facebook.api.Facebook").add(
+				"spring-boot-starter-social-facebook");
 	}
 
 	@Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,10 @@
 package org.springframework.boot.cli.command.run;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -45,8 +43,6 @@ public class SpringApplicationRunner {
 
 	private static int runnerCounter = 0;
 
-	private final Object monitor = new Object();
-
 	private final SpringApplicationRunnerConfiguration configuration;
 
 	private final String[] sources;
@@ -65,79 +61,62 @@ public class SpringApplicationRunner {
 	 * @param sources the files to compile/watch
 	 * @param args input arguments
 	 */
-	SpringApplicationRunner(final SpringApplicationRunnerConfiguration configuration,
-			String[] sources, String... args) {
+	public SpringApplicationRunner(
+			final SpringApplicationRunnerConfiguration configuration, String[] sources,
+			String... args) {
 		this.configuration = configuration;
 		this.sources = sources.clone();
 		this.args = args.clone();
 		this.compiler = new GroovyCompiler(configuration);
 		int level = configuration.getLogLevel().intValue();
 		if (level <= Level.FINER.intValue()) {
-			System.setProperty(
-					"org.springframework.boot.cli.compiler.grape.ProgressReporter",
-					"detail");
+			System.setProperty("groovy.grape.report.downloads", "true");
 			System.setProperty("trace", "true");
 		}
 		else if (level <= Level.FINE.intValue()) {
 			System.setProperty("debug", "true");
 		}
 		else if (level == Level.OFF.intValue()) {
-			System.setProperty("spring.main.banner-mode", "OFF");
+			System.setProperty("spring.main.showBanner", "false");
 			System.setProperty("logging.level.ROOT", "OFF");
-			System.setProperty(
-					"org.springframework.boot.cli.compiler.grape.ProgressReporter",
-					"none");
 		}
 	}
 
 	/**
-	 * Compile and run the application.
+	 * Compile and run the application. This method is synchronized as it can be called by
+	 * file monitoring threads.
 	 * @throws Exception on error
 	 */
-	public void compileAndRun() throws Exception {
-		synchronized (this.monitor) {
-			try {
-				stop();
-				Object[] compiledSources = compile();
-				monitorForChanges();
-				// Run in new thread to ensure that the context classloader is setup
-				this.runThread = new RunThread(compiledSources);
-				this.runThread.start();
-				this.runThread.join();
-			}
-			catch (Exception ex) {
-				if (this.fileWatchThread == null) {
-					throw ex;
-				}
-				else {
-					ex.printStackTrace();
-				}
-			}
-		}
-	}
+	public synchronized void compileAndRun() throws Exception {
+		try {
 
-	public void stop() {
-		synchronized (this.monitor) {
-			if (this.runThread != null) {
-				this.runThread.shutdown();
-				this.runThread = null;
+			stop();
+
+			// Compile
+			Object[] compiledSources = this.compiler.compile(this.sources);
+			if (compiledSources.length == 0) {
+				throw new RuntimeException("No classes found in '" + this.sources + "'");
 			}
-		}
-	}
 
-	private Object[] compile() throws IOException {
-		Object[] compiledSources = this.compiler.compile(this.sources);
-		if (compiledSources.length == 0) {
-			throw new RuntimeException(
-					"No classes found in '" + Arrays.toString(this.sources) + "'");
-		}
-		return compiledSources;
-	}
+			// Start monitoring for changes
+			if (this.fileWatchThread == null
+					&& this.configuration.isWatchForFileChanges()) {
+				this.fileWatchThread = new FileWatchThread();
+				this.fileWatchThread.start();
+			}
 
-	private void monitorForChanges() {
-		if (this.fileWatchThread == null && this.configuration.isWatchForFileChanges()) {
-			this.fileWatchThread = new FileWatchThread();
-			this.fileWatchThread.start();
+			// Run in new thread to ensure that the context classloader is setup
+			this.runThread = new RunThread(compiledSources);
+			this.runThread.start();
+			this.runThread.join();
+		}
+		catch (Exception ex) {
+			if (this.fileWatchThread == null) {
+				throw ex;
+			}
+			else {
+				ex.printStackTrace();
+			}
 		}
 	}
 
@@ -145,8 +124,6 @@ public class SpringApplicationRunner {
 	 * Thread used to launch the Spring Application with the correct context classloader.
 	 */
 	private class RunThread extends Thread {
-
-		private final Object monitor = new Object();
 
 		private final Object[] compiledSources;
 
@@ -156,7 +133,7 @@ public class SpringApplicationRunner {
 		 * Create a new {@link RunThread} instance.
 		 * @param compiledSources the sources to launch
 		 */
-		RunThread(Object... compiledSources) {
+		public RunThread(Object... compiledSources) {
 			super("runner-" + (runnerCounter++));
 			this.compiledSources = compiledSources;
 			if (compiledSources.length != 0 && compiledSources[0] instanceof Class) {
@@ -167,42 +144,36 @@ public class SpringApplicationRunner {
 
 		@Override
 		public void run() {
-			synchronized (this.monitor) {
-				try {
-					this.applicationContext = new SpringApplicationLauncher(
-							getContextClassLoader()).launch(this.compiledSources,
-									SpringApplicationRunner.this.args);
-				}
-				catch (Exception ex) {
-					ex.printStackTrace();
-				}
+			try {
+				this.applicationContext = new SpringApplicationLauncher(
+						getContextClassLoader()).launch(this.compiledSources,
+						SpringApplicationRunner.this.args);
+			}
+			catch (Exception ex) {
+				ex.printStackTrace();
 			}
 		}
 
 		/**
 		 * Shutdown the thread, closing any previously opened application context.
 		 */
-		public void shutdown() {
-			synchronized (this.monitor) {
-				if (this.applicationContext != null) {
-					try {
-						Method method = this.applicationContext.getClass()
-								.getMethod("close");
-						method.invoke(this.applicationContext);
-					}
-					catch (NoSuchMethodException ex) {
-						// Not an application context that we can close
-					}
-					catch (Exception ex) {
-						ex.printStackTrace();
-					}
-					finally {
-						this.applicationContext = null;
-					}
+		public synchronized void shutdown() {
+			if (this.applicationContext != null) {
+				try {
+					Method method = this.applicationContext.getClass().getMethod("close");
+					method.invoke(this.applicationContext);
+				}
+				catch (NoSuchMethodException ex) {
+					// Not an application context that we can close
+				}
+				catch (Exception ex) {
+					ex.printStackTrace();
+				}
+				finally {
+					this.applicationContext = null;
 				}
 			}
 		}
-
 	}
 
 	/**
@@ -214,7 +185,7 @@ public class SpringApplicationRunner {
 
 		private List<File> sources;
 
-		FileWatchThread() {
+		public FileWatchThread() {
 			super("filewatcher-" + (watcherCounter++));
 			this.previous = 0;
 			this.sources = getSourceFiles();
@@ -273,6 +244,13 @@ public class SpringApplicationRunner {
 			}
 		}
 
+	}
+
+	public void stop() {
+		if (this.runThread != null) {
+			this.runThread.shutdown();
+			this.runThread = null;
+		}
 	}
 
 }

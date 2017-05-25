@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.LocalRepositoryManager;
 import org.eclipse.aether.repository.ProxySelector;
 import org.eclipse.aether.util.repository.JreProxySelector;
-
 import org.springframework.util.StringUtils;
 
 /**
@@ -34,8 +33,8 @@ import org.springframework.util.StringUtils;
  *
  * @author Andy Wilkinson
  */
-public class DefaultRepositorySystemSessionAutoConfiguration
-		implements RepositorySystemSessionAutoConfiguration {
+public class DefaultRepositorySystemSessionAutoConfiguration implements
+		RepositorySystemSessionAutoConfiguration {
 
 	@Override
 	public void apply(DefaultRepositorySystemSession session,
@@ -58,7 +57,15 @@ public class DefaultRepositorySystemSessionAutoConfiguration
 	}
 
 	private File getM2RepoDirectory() {
-		return new File(getDefaultM2HomeDirectory(), "repository");
+		return new File(getM2HomeDirectory(), "repository");
+	}
+
+	private File getM2HomeDirectory() {
+		String grapeRoot = System.getProperty("grape.root");
+		if (StringUtils.hasLength(grapeRoot)) {
+			return new File(grapeRoot);
+		}
+		return getDefaultM2HomeDirectory();
 	}
 
 	private File getDefaultM2HomeDirectory() {
@@ -68,5 +75,4 @@ public class DefaultRepositorySystemSessionAutoConfiguration
 		}
 		return new File(System.getProperty("user.home"), ".m2");
 	}
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,20 @@
 
 package org.springframework.boot.actuate.metrics.writer;
 
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnitRunner;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 /**
  * Tests for {@link DefaultCounterService}.
- *
- * @author Dave Syer
  */
+@RunWith(MockitoJUnitRunner.class)
 public class DefaultCounterServiceTests {
 
 	private final MetricWriter repository = mock(MetricWriter.class);
@@ -41,41 +40,20 @@ public class DefaultCounterServiceTests {
 	@Captor
 	private ArgumentCaptor<Delta<Number>> captor;
 
-	@Before
-	public void setup() {
-		MockitoAnnotations.initMocks(this);
-	}
-
-	@Test
-	public void incrementWithExistingCounter() {
-		this.service.increment("counter.foo");
-		verify(this.repository).increment(this.captor.capture());
-		assertThat(this.captor.getValue().getName()).isEqualTo("counter.foo");
-		assertThat(this.captor.getValue().getValue()).isEqualTo(1L);
-	}
-
-	@Test
-	public void incrementWithExistingNearCounter() {
-		this.service.increment("counter-foo");
-		verify(this.repository).increment(this.captor.capture());
-		assertThat(this.captor.getValue().getName()).isEqualTo("counter.counter-foo");
-		assertThat(this.captor.getValue().getValue()).isEqualTo(1L);
-	}
-
 	@Test
 	public void incrementPrependsCounter() {
 		this.service.increment("foo");
 		verify(this.repository).increment(this.captor.capture());
-		assertThat(this.captor.getValue().getName()).isEqualTo("counter.foo");
-		assertThat(this.captor.getValue().getValue()).isEqualTo(1L);
+		assertEquals("counter.foo", this.captor.getValue().getName());
+		assertEquals(1L, this.captor.getValue().getValue());
 	}
 
 	@Test
 	public void decrementPrependsCounter() {
 		this.service.decrement("foo");
 		verify(this.repository).increment(this.captor.capture());
-		assertThat(this.captor.getValue().getName()).isEqualTo("counter.foo");
-		assertThat(this.captor.getValue().getValue()).isEqualTo(-1L);
+		assertEquals("counter.foo", this.captor.getValue().getName());
+		assertEquals(-1L, this.captor.getValue().getValue());
 	}
 
 	@Test
@@ -83,5 +61,4 @@ public class DefaultCounterServiceTests {
 		this.service.reset("foo");
 		verify(this.repository).reset("counter.foo");
 	}
-
 }

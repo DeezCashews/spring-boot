@@ -27,7 +27,7 @@ import javax.lang.model.element.Element;
  * @author Phillip Webb
  * @since 1.2.0
  */
-final class Trees extends ReflectionWrapper {
+class Trees extends ReflectionWrapper {
 
 	private Trees(Object instance) {
 		super(instance);

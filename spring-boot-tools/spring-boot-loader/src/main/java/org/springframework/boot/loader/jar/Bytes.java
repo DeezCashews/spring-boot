@@ -27,12 +27,9 @@ import org.springframework.boot.loader.data.RandomAccessData.ResourceAccess;
  *
  * @author Phillip Webb
  */
-final class Bytes {
+class Bytes {
 
 	private static final byte[] EMPTY_BYTES = new byte[] {};
-
-	private Bytes() {
-	}
 
 	public static byte[] get(RandomAccessData data) throws IOException {
 		InputStream inputStream = data.getInputStream(ResourceAccess.ONCE);

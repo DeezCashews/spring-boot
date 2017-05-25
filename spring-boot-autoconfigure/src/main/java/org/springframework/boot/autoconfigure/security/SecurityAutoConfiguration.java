@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,11 +35,11 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
  * {@link AuthenticationManager} based on configuration bound to a
  * {@link SecurityProperties} bean. There is one user (named "user") whose password is
  * random and printed on the console at INFO level during startup. In a webapp this
- * configuration also secures all web endpoints (except some well-known static resource
- * locations) with HTTP basic security. To replace all the default behaviours in a webapp
- * provide a {@code @Configuration} with {@code @EnableWebSecurity}. To just add your own
- * layer of application security in front of the defaults, add a {@code @Configuration} of
- * type {@link WebSecurityConfigurerAdapter}.
+ * configuration also secures all web endpoints (except some well-known static resource)
+ * locations with HTTP basic security. To replace all the default behaviour in a webapp
+ * provide a <code>@Configuration</code> with <code>@EnableWebSecurity</code>. To just add
+ * your own layer of application security in front of the defaults, add a
+ * <code>@Configuration</code> of type {@link WebSecurityConfigurerAdapter}.
  *
  * @author Dave Syer
  * @author Andy Wilkinson
@@ -49,13 +49,12 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 		GlobalAuthenticationConfigurerAdapter.class })
 @EnableConfigurationProperties
 @Import({ SpringBootWebSecurityConfiguration.class,
-		AuthenticationManagerConfiguration.class,
-		BootGlobalAuthenticationConfiguration.class, SecurityDataConfiguration.class })
+		AuthenticationManagerConfiguration.class })
 public class SecurityAutoConfiguration {
 
 	@Bean
-	@ConditionalOnMissingBean(AuthenticationEventPublisher.class)
-	public DefaultAuthenticationEventPublisher authenticationEventPublisher(
+	@ConditionalOnMissingBean
+	public AuthenticationEventPublisher authenticationEventPublisher(
 			ApplicationEventPublisher publisher) {
 		return new DefaultAuthenticationEventPublisher(publisher);
 	}

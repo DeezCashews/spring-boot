@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@ package org.springframework.boot.bind;
 
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link DefaultPropertyNamePatternsMatcher}.
@@ -27,57 +28,42 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class DefaultPropertyNamePatternsMatcherTests {
 
-	private static final char[] DELIMITERS = { '.', '_' };
-
 	@Test
 	public void namesShorter() {
-		assertThat(new DefaultPropertyNamePatternsMatcher(DELIMITERS, "aaaa", "bbbb")
-				.matches("zzzzz")).isFalse();
+		assertFalse(new DefaultPropertyNamePatternsMatcher("aaaa", "bbbb")
+				.matches("zzzzz"));
 
 	}
 
 	@Test
 	public void namesExactMatch() {
-		assertThat(
-				new DefaultPropertyNamePatternsMatcher(DELIMITERS, "aaaa", "bbbb", "cccc")
-						.matches("bbbb")).isTrue();
+		assertTrue(new DefaultPropertyNamePatternsMatcher("aaaa", "bbbb", "cccc")
+				.matches("bbbb"));
 	}
 
 	@Test
 	public void namesLonger() {
-		assertThat(new DefaultPropertyNamePatternsMatcher(DELIMITERS, "aaaaa", "bbbbb",
-				"ccccc").matches("bbbb")).isFalse();
+		assertFalse(new DefaultPropertyNamePatternsMatcher("aaaaa", "bbbbb", "ccccc")
+				.matches("bbbb"));
 	}
 
 	@Test
 	public void nameWithDot() throws Exception {
-		assertThat(
-				new DefaultPropertyNamePatternsMatcher(DELIMITERS, "aaaa", "bbbb", "cccc")
-						.matches("bbbb.anything")).isTrue();
+		assertTrue(new DefaultPropertyNamePatternsMatcher("aaaa", "bbbb", "cccc")
+				.matches("bbbb.anything"));
 	}
 
 	@Test
 	public void nameWithUnderscore() throws Exception {
-		assertThat(
-				new DefaultPropertyNamePatternsMatcher(DELIMITERS, "aaaa", "bbbb", "cccc")
-						.matches("bbbb_anything")).isTrue();
+		assertTrue(new DefaultPropertyNamePatternsMatcher("aaaa", "bbbb", "cccc")
+				.matches("bbbb_anything"));
 	}
 
 	@Test
 	public void namesMatchWithDifferentLengths() throws Exception {
-		assertThat(
-				new DefaultPropertyNamePatternsMatcher(DELIMITERS, "aaa", "bbbb", "ccccc")
-						.matches("bbbb")).isTrue();
-	}
+		assertTrue(new DefaultPropertyNamePatternsMatcher("aaa", "bbbb", "ccccc")
+				.matches("bbbb"));
 
-	@Test
-	public void withSquareBrackets() throws Exception {
-		char[] delimiters = "._[".toCharArray();
-		PropertyNamePatternsMatcher matcher = new DefaultPropertyNamePatternsMatcher(
-				delimiters, "aaa", "bbbb", "ccccc");
-		assertThat(matcher.matches("bbbb")).isTrue();
-		assertThat(matcher.matches("bbbb[4]")).isTrue();
-		assertThat(matcher.matches("bbb[4]")).isFalse();
 	}
 
 }

@@ -1,15 +1,15 @@
-package com.example
-
-@SpringBootApplication
-@SpringBootTest(classes=RestTests, webEnvironment=WebEnvironment.RANDOM_PORT)
+@SpringApplicationConfiguration(classes=Application)
+@IntegrationTest('server.port:0')
+@WebAppConfiguration
+@DirtiesContext
 class RestTests {
 
-	@Autowired
-	TestRestTemplate testRestTemplate;
+	@Value('${local.server.port}')
+	int port
 
 	@Test
 	void testHome() {
-		assertEquals('Hello', testRestTemplate.getForObject('/', String))
+		assertEquals('Hello', new TestRestTemplate().getForObject('http://localhost:' + port, String))
 	}
 
 	@RestController
@@ -17,5 +17,4 @@ class RestTests {
 		@RequestMapping('/')
 		String hello() { 'Hello' }
 	}
-
 }

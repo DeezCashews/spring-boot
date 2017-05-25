@@ -35,13 +35,6 @@ public @interface AutoConfigureAfter {
 	 * The auto-configure classes that should have already been applied.
 	 * @return the classes
 	 */
-	Class<?>[] value() default {};
-
-	/**
-	 * The names of the auto-configure classes that should have already been applied.
-	 * @return the class names
-	 * @since 1.2.2
-	 */
-	String[] name() default {};
+	Class<?>[] value();
 
 }

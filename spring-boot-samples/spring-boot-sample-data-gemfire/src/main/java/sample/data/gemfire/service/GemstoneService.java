@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2010-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -50,8 +50,8 @@ public interface GemstoneService {
 
 	/**
 	 * Return a listing of Gemstones currently stored in the GemFire Cache.
-	 * @return an Iterable object to iterate over the list of Gemstones currently stored
-	 * in the GemFire Cache.
+	 * @return a Iterable object to iterate over the list of Gemstones currently stored in
+	 * the GemFire Cache.
 	 * @see java.lang.Iterable
 	 * @see sample.data.gemfire.domain.Gemstone
 	 */

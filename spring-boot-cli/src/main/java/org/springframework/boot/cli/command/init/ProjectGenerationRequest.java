@@ -25,14 +25,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.http.client.utils.URIBuilder;
-
 import org.springframework.util.StringUtils;
 
 /**
  * Represent the settings to apply to generating the project.
  *
  * @author Stephane Nicoll
- * @author Eddú Meléndez
  * @since 1.2.0
  */
 class ProjectGenerationRequest {
@@ -45,19 +43,11 @@ class ProjectGenerationRequest {
 
 	private boolean extract;
 
-	private String groupId;
+	private String bootVersion;
 
-	private String artifactId;
+	private List<String> dependencies = new ArrayList<String>();
 
-	private String version;
-
-	private String name;
-
-	private String description;
-
-	private String packageName;
-
-	private String type;
+	private String javaVersion;
 
 	private String packaging;
 
@@ -67,18 +57,12 @@ class ProjectGenerationRequest {
 
 	private boolean detectType;
 
-	private String javaVersion;
-
-	private String language;
-
-	private String bootVersion;
-
-	private List<String> dependencies = new ArrayList<String>();
+	private String type;
 
 	/**
 	 * The URL of the service to use.
-	 * @return the service URL
 	 * @see #DEFAULT_SERVICE_URL
+	 * @return the service URL
 	 */
 	public String getServiceUrl() {
 		return this.serviceUrl;
@@ -121,88 +105,35 @@ class ProjectGenerationRequest {
 	}
 
 	/**
-	 * The groupId to use or {@code null} if it should not be customized.
-	 * @return the groupId or {@code null}
+	 * The Spring Boot version to use or {@code null} if it should not be customized.
+	 * @return the Spring Boot version of {@code null}
 	 */
-	public String getGroupId() {
-		return this.groupId;
+	public String getBootVersion() {
+		return this.bootVersion;
 	}
 
-	public void setGroupId(String groupId) {
-		this.groupId = groupId;
+	public void setBootVersion(String bootVersion) {
+		this.bootVersion = bootVersion;
 	}
 
 	/**
-	 * The artifactId to use or {@code null} if it should not be customized.
-	 * @return the artifactId or {@code null}
+	 * The identifiers of the dependencies to include in the project.
+	 * @return the dependency identifiers
 	 */
-	public String getArtifactId() {
-		return this.artifactId;
-	}
-
-	public void setArtifactId(String artifactId) {
-		this.artifactId = artifactId;
+	public List<String> getDependencies() {
+		return this.dependencies;
 	}
 
 	/**
-	 * The artifact version to use or {@code null} if it should not be customized.
-	 * @return the artifact version or {@code null}
+	 * The Java version to use or {@code null} if it should not be customized.
+	 * @return the Java version or {@code null}
 	 */
-	public String getVersion() {
-		return this.version;
+	public String getJavaVersion() {
+		return this.javaVersion;
 	}
 
-	public void setVersion(String version) {
-		this.version = version;
-	}
-
-	/**
-	 * The name to use or {@code null} if it should not be customized.
-	 * @return the name or {@code null}
-	 */
-	public String getName() {
-		return this.name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	/**
-	 * The description to use or {@code null} if it should not be customized.
-	 * @return the description or {@code null}
-	 */
-	public String getDescription() {
-		return this.description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
-	/**
-	 * Return the package name or {@code null} if it should not be customized.
-	 * @return the package name or {@code null}
-	 */
-	public String getPackageName() {
-		return this.packageName;
-	}
-
-	public void setPackageName(String packageName) {
-		this.packageName = packageName;
-	}
-
-	/**
-	 * The type of project to generate. Should match one of the advertized type that the
-	 * service supports. If not set, the default is retrieved from the service metadata.
-	 * @return the project type
-	 */
-	public String getType() {
-		return this.type;
-	}
-
-	public void setType(String type) {
-		this.type = type;
+	public void setJavaVersion(String javaVersion) {
+		this.javaVersion = javaVersion;
 	}
 
 	/**
@@ -256,51 +187,20 @@ class ProjectGenerationRequest {
 	}
 
 	/**
-	 * The Java version to use or {@code null} if it should not be customized.
-	 * @return the Java version or {@code null}
+	 * The type of project to generate. Should match one of the advertized type that the
+	 * service supports. If not set, the default is retrieved from the service metadata.
+	 * @return the project type
 	 */
-	public String getJavaVersion() {
-		return this.javaVersion;
+	public String getType() {
+		return this.type;
 	}
 
-	public void setJavaVersion(String javaVersion) {
-		this.javaVersion = javaVersion;
+	public void setType(String type) {
+		this.type = type;
 	}
 
 	/**
-	 * The programming language to use or {@code null} if it should not be customized.
-	 * @return the programming language or {@code null}
-	 */
-	public String getLanguage() {
-		return this.language;
-	}
-
-	public void setLanguage(String language) {
-		this.language = language;
-	}
-
-	/**
-	 * The Spring Boot version to use or {@code null} if it should not be customized.
-	 * @return the Spring Boot version or {@code null}
-	 */
-	public String getBootVersion() {
-		return this.bootVersion;
-	}
-
-	public void setBootVersion(String bootVersion) {
-		this.bootVersion = bootVersion;
-	}
-
-	/**
-	 * The identifiers of the dependencies to include in the project.
-	 * @return the dependency identifiers
-	 */
-	public List<String> getDependencies() {
-		return this.dependencies;
-	}
-
-	/**
-	 * Generates the URI to use to generate a project represented by this request.
+	 * Generates the URI to use to generate a project represented by this request
 	 * @param metadata the metadata that describes the service
 	 * @return the project generation URI
 	 */
@@ -317,44 +217,22 @@ class ProjectGenerationRequest {
 			sb.append(projectType.getAction());
 			builder.setPath(sb.toString());
 
+			if (this.bootVersion != null) {
+				builder.setParameter("bootVersion", this.bootVersion);
+			}
+
 			if (!this.dependencies.isEmpty()) {
 				builder.setParameter("dependencies",
 						StringUtils.collectionToCommaDelimitedString(this.dependencies));
 			}
-
-			if (this.groupId != null) {
-				builder.setParameter("groupId", this.groupId);
-			}
-			String resolvedArtifactId = resolveArtifactId();
-			if (resolvedArtifactId != null) {
-				builder.setParameter("artifactId", resolvedArtifactId);
-			}
-			if (this.version != null) {
-				builder.setParameter("version", this.version);
-			}
-			if (this.name != null) {
-				builder.setParameter("name", this.name);
-			}
-			if (this.description != null) {
-				builder.setParameter("description", this.description);
-			}
-			if (this.packageName != null) {
-				builder.setParameter("packageName", this.packageName);
-			}
-			if (this.type != null) {
-				builder.setParameter("type", projectType.getId());
+			if (this.javaVersion != null) {
+				builder.setParameter("javaVersion", this.javaVersion);
 			}
 			if (this.packaging != null) {
 				builder.setParameter("packaging", this.packaging);
 			}
-			if (this.javaVersion != null) {
-				builder.setParameter("javaVersion", this.javaVersion);
-			}
-			if (this.language != null) {
-				builder.setParameter("language", this.language);
-			}
-			if (this.bootVersion != null) {
-				builder.setParameter("bootVersion", this.bootVersion);
+			if (this.type != null) {
+				builder.setParameter("type", projectType.getId());
 			}
 
 			return builder.build();
@@ -368,8 +246,8 @@ class ProjectGenerationRequest {
 		if (this.type != null) {
 			ProjectType result = metadata.getProjectTypes().get(this.type);
 			if (result == null) {
-				throw new ReportableException(("No project type with id '" + this.type
-						+ "' - check the service capabilities (--list)"));
+				throw new ReportableException(
+						("No project type with id '" + this.type + "' - check the service capabilities (--list)"));
 			}
 			return result;
 		}
@@ -385,7 +263,7 @@ class ProjectGenerationRequest {
 			if (types.size() == 1) {
 				return types.values().iterator().next();
 			}
-			else if (types.isEmpty()) {
+			else if (types.size() == 0) {
 				throw new ReportableException("No type found with build '" + this.build
 						+ "' and format '" + this.format
 						+ "' check the service capabilities (--list)");
@@ -407,25 +285,10 @@ class ProjectGenerationRequest {
 		}
 	}
 
-	/**
-	 * Resolve the artifactId to use or {@code null} if it should not be customized.
-	 * @return the artifactId
-	 */
-	protected String resolveArtifactId() {
-		if (this.artifactId != null) {
-			return this.artifactId;
-		}
-		if (this.output != null) {
-			int i = this.output.lastIndexOf('.');
-			return (i == -1 ? this.output : this.output.substring(0, i));
-		}
-		return null;
-	}
-
 	private static void filter(Map<String, ProjectType> projects, String tag,
 			String tagValue) {
-		for (Iterator<Map.Entry<String, ProjectType>> it = projects.entrySet()
-				.iterator(); it.hasNext();) {
+		for (Iterator<Map.Entry<String, ProjectType>> it = projects.entrySet().iterator(); it
+				.hasNext();) {
 			Map.Entry<String, ProjectType> entry = it.next();
 			String value = entry.getValue().getTags().get(tag);
 			if (!tagValue.equals(value)) {

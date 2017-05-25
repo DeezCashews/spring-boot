@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,14 +20,15 @@ import java.util.Map;
 
 import org.junit.After;
 import org.junit.Test;
-
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests for {@link SpringDataWebAutoConfiguration}.
@@ -55,7 +56,7 @@ public class SpringDataWebAutoConfigurationTests {
 				.setServletContext(new MockServletContext());
 		Map<String, PageableHandlerMethodArgumentResolver> beans = this.context
 				.getBeansOfType(PageableHandlerMethodArgumentResolver.class);
-		assertThat(beans).hasSize(1);
+		assertThat(beans.size(), is(equalTo(1)));
 	}
 
 	@Test
@@ -66,7 +67,7 @@ public class SpringDataWebAutoConfigurationTests {
 		this.context.refresh();
 		Map<String, PageableHandlerMethodArgumentResolver> beans = this.context
 				.getBeansOfType(PageableHandlerMethodArgumentResolver.class);
-		assertThat(beans).isEmpty();
+		assertThat(beans.size(), is(equalTo(0)));
 	}
 
 }

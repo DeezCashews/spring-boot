@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,19 +20,18 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 import org.junit.Test;
-
 import org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Abstract base class for {@link DataSourcePoolMetadata} tests.
  *
- * @param <D> the data source pool metadata type
  * @author Stephane Nicoll
+ * @param <D> the data source pool metadata type
  */
 public abstract class AbstractDataSourcePoolMetadataTests<D extends AbstractDataSourcePoolMetadata<?>> {
 
@@ -44,42 +43,40 @@ public abstract class AbstractDataSourcePoolMetadataTests<D extends AbstractData
 
 	@Test
 	public void getMaxPoolSize() {
-		assertThat(getDataSourceMetadata().getMax()).isEqualTo(Integer.valueOf(2));
+		assertEquals(Integer.valueOf(2), getDataSourceMetadata().getMax());
 	}
 
 	@Test
 	public void getMinPoolSize() {
-		assertThat(getDataSourceMetadata().getMin()).isEqualTo(Integer.valueOf(0));
+		assertEquals(Integer.valueOf(0), getDataSourceMetadata().getMin());
 	}
 
 	@Test
 	public void getPoolSizeNoConnection() {
 		// Make sure the pool is initialized
-		JdbcTemplate jdbcTemplate = new JdbcTemplate(
-				getDataSourceMetadata().getDataSource());
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(getDataSourceMetadata()
+				.getDataSource());
 		jdbcTemplate.execute(new ConnectionCallback<Void>() {
 			@Override
-			public Void doInConnection(Connection connection)
-					throws SQLException, DataAccessException {
+			public Void doInConnection(Connection connection) throws SQLException,
+					DataAccessException {
 				return null;
 			}
 		});
-		assertThat(getDataSourceMetadata().getActive()).isEqualTo(Integer.valueOf(0));
-		assertThat(getDataSourceMetadata().getUsage()).isEqualTo(Float.valueOf(0));
+		assertEquals(Integer.valueOf(0), getDataSourceMetadata().getActive());
+		assertEquals(Float.valueOf(0), getDataSourceMetadata().getUsage());
 	}
 
 	@Test
 	public void getPoolSizeOneConnection() {
-		JdbcTemplate jdbcTemplate = new JdbcTemplate(
-				getDataSourceMetadata().getDataSource());
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(getDataSourceMetadata()
+				.getDataSource());
 		jdbcTemplate.execute(new ConnectionCallback<Void>() {
 			@Override
-			public Void doInConnection(Connection connection)
-					throws SQLException, DataAccessException {
-				assertThat(getDataSourceMetadata().getActive())
-						.isEqualTo(Integer.valueOf(1));
-				assertThat(getDataSourceMetadata().getUsage())
-						.isEqualTo(Float.valueOf(0.5F));
+			public Void doInConnection(Connection connection) throws SQLException,
+					DataAccessException {
+				assertEquals(Integer.valueOf(1), getDataSourceMetadata().getActive());
+				assertEquals(Float.valueOf(0.5F), getDataSourceMetadata().getUsage());
 				return null;
 			}
 		});
@@ -87,27 +84,25 @@ public abstract class AbstractDataSourcePoolMetadataTests<D extends AbstractData
 
 	@Test
 	public void getPoolSizeTwoConnections() {
-		final JdbcTemplate jdbcTemplate = new JdbcTemplate(
-				getDataSourceMetadata().getDataSource());
+		final JdbcTemplate jdbcTemplate = new JdbcTemplate(getDataSourceMetadata()
+				.getDataSource());
 		jdbcTemplate.execute(new ConnectionCallback<Void>() {
-
 			@Override
-			public Void doInConnection(Connection connection)
-					throws SQLException, DataAccessException {
+			public Void doInConnection(Connection connection) throws SQLException,
+					DataAccessException {
 				jdbcTemplate.execute(new ConnectionCallback<Void>() {
-
 					@Override
 					public Void doInConnection(Connection connection)
 							throws SQLException, DataAccessException {
-						assertThat(getDataSourceMetadata().getActive()).isEqualTo(2);
-						assertThat(getDataSourceMetadata().getUsage()).isEqualTo(1.0f);
+						assertEquals(Integer.valueOf(2), getDataSourceMetadata()
+								.getActive());
+						assertEquals(Float.valueOf(1F), getDataSourceMetadata()
+								.getUsage());
 						return null;
 					}
-
 				});
 				return null;
 			}
-
 		});
 	}
 

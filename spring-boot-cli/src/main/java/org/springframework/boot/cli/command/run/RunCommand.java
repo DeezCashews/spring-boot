@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.springframework.boot.cli.command.run;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -33,6 +32,8 @@ import org.springframework.boot.cli.command.status.ExitStatus;
 import org.springframework.boot.cli.compiler.GroovyCompilerScope;
 import org.springframework.boot.cli.compiler.RepositoryConfigurationFactory;
 import org.springframework.boot.cli.compiler.grape.RepositoryConfiguration;
+
+import static java.util.Arrays.asList;
 
 /**
  * {@link Command} to 'run' a groovy script or scripts.
@@ -61,8 +62,6 @@ public class RunCommand extends OptionParsingCommand {
 
 	private static class RunOptionHandler extends CompilerOptionHandler {
 
-		private final Object monitor = new Object();
-
 		private OptionSpec<Void> watchOption;
 
 		private OptionSpec<Void> verboseOption;
@@ -74,55 +73,52 @@ public class RunCommand extends OptionParsingCommand {
 		@Override
 		protected void doOptions() {
 			this.watchOption = option("watch", "Watch the specified file for changes");
-			this.verboseOption = option(Arrays.asList("verbose", "v"),
+			this.verboseOption = option(asList("verbose", "v"),
 					"Verbose logging of dependency resolution");
-			this.quietOption = option(Arrays.asList("quiet", "q"), "Quiet logging");
+			this.quietOption = option(asList("quiet", "q"), "Quiet logging");
 		}
 
-		public void stop() {
-			synchronized (this.monitor) {
-				if (this.runner != null) {
-					this.runner.stop();
-				}
-				this.runner = null;
+		public synchronized void stop() {
+			if (this.runner != null) {
+				this.runner.stop();
 			}
+			this.runner = null;
 		}
 
 		@Override
 		protected synchronized ExitStatus run(OptionSet options) throws Exception {
-			synchronized (this.monitor) {
-				if (this.runner != null) {
-					throw new RuntimeException(
-							"Already running. Please stop the current application before running another (use the 'stop' command).");
-				}
 
-				SourceOptions sourceOptions = new SourceOptions(options);
-
-				List<RepositoryConfiguration> repositoryConfiguration = RepositoryConfigurationFactory
-						.createDefaultRepositoryConfiguration();
-				repositoryConfiguration.add(0, new RepositoryConfiguration("local",
-						new File("repository").toURI(), true));
-
-				SpringApplicationRunnerConfiguration configuration = new SpringApplicationRunnerConfigurationAdapter(
-						options, this, repositoryConfiguration);
-
-				this.runner = new SpringApplicationRunner(configuration,
-						sourceOptions.getSourcesArray(), sourceOptions.getArgsArray());
-				this.runner.compileAndRun();
-
-				return ExitStatus.OK;
+			if (this.runner != null) {
+				throw new RuntimeException(
+						"Already running. Please stop the current application before running another (use the 'stop' command).");
 			}
+
+			SourceOptions sourceOptions = new SourceOptions(options);
+
+			List<RepositoryConfiguration> repositoryConfiguration = RepositoryConfigurationFactory
+					.createDefaultRepositoryConfiguration();
+			repositoryConfiguration.add(0, new RepositoryConfiguration("local", new File(
+					"repository").toURI(), true));
+
+			SpringApplicationRunnerConfiguration configuration = new SpringApplicationRunnerConfigurationAdapter(
+					options, this, repositoryConfiguration);
+
+			this.runner = new SpringApplicationRunner(configuration,
+					sourceOptions.getSourcesArray(), sourceOptions.getArgsArray());
+			this.runner.compileAndRun();
+
+			return ExitStatus.OK;
 		}
 
 		/**
 		 * Simple adapter class to present the {@link OptionSet} as a
 		 * {@link SpringApplicationRunnerConfiguration}.
 		 */
-		private class SpringApplicationRunnerConfigurationAdapter
-				extends OptionSetGroovyCompilerConfiguration
-				implements SpringApplicationRunnerConfiguration {
+		private class SpringApplicationRunnerConfigurationAdapter extends
+				OptionSetGroovyCompilerConfiguration implements
+				SpringApplicationRunnerConfiguration {
 
-			SpringApplicationRunnerConfigurationAdapter(OptionSet options,
+			public SpringApplicationRunnerConfigurationAdapter(OptionSet options,
 					CompilerOptionHandler optionHandler,
 					List<RepositoryConfiguration> repositoryConfiguration) {
 				super(options, optionHandler, repositoryConfiguration);
@@ -140,7 +136,7 @@ public class RunCommand extends OptionParsingCommand {
 
 			@Override
 			public Level getLogLevel() {
-				if (isQuiet()) {
+				if (getOptions().has(RunOptionHandler.this.quietOption)) {
 					return Level.OFF;
 				}
 				if (getOptions().has(RunOptionHandler.this.verboseOption)) {
@@ -148,14 +144,7 @@ public class RunCommand extends OptionParsingCommand {
 				}
 				return Level.INFO;
 			}
-
-			@Override
-			public boolean isQuiet() {
-				return getOptions().has(RunOptionHandler.this.quietOption);
-			}
-
 		}
-
 	}
 
 }

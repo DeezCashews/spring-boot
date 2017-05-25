@@ -23,42 +23,24 @@ import org.springframework.util.Assert;
  * <p>
  * The value of the average will depend on whether a weight ('alpha') is set for the
  * gauge. If it is unset, the average will contain a simple arithmetic mean. If a weight
- * is set, an exponential moving average will be calculated as defined in this
- * <a href="http://www.itl.nist.gov/div898/handbook/pmc/section4/pmc431.htm">NIST
+ * is set, an exponential moving average will be calculated as defined in this <a
+ * href="http://www.itl.nist.gov/div898/handbook/pmc/section4/pmc431.htm">NIST
  * document</a>.
  *
  * @author Luke Taylor
  */
 public final class RichGauge {
 
-	/**
-	 * The suffix for count gauges.
-	 */
 	public static final String COUNT = ".count";
 
-	/**
-	 * The suffix for max gauges.
-	 */
 	public static final String MAX = ".max";
 
-	/**
-	 * The suffix for min gauges.
-	 */
 	public static final String MIN = ".min";
 
-	/**
-	 * The suffix for average value gauges.
-	 */
 	public static final String AVG = ".avg";
 
-	/**
-	 * The suffix for alpha gauges.
-	 */
 	public static final String ALPHA = ".alpha";
 
-	/**
-	 * The suffix for value gauges.
-	 */
 	public static final String VAL = ".val";
 
 	private final String name;
@@ -108,24 +90,23 @@ public final class RichGauge {
 	}
 
 	/**
-	 * Return the name of the gauge.
-	 * @return the name
+	 * @return the name of the gauge
 	 */
 	public String getName() {
 		return this.name;
 	}
 
 	/**
-	 * Return the current value of the gauge.
-	 * @return the value
+	 * @return the current value
 	 */
 	public double getValue() {
 		return this.value;
 	}
 
 	/**
-	 * Return either an exponential weighted moving average or a simple mean,
-	 * respectively, depending on whether the weight 'alpha' has been set for this gauge.
+	 * Either an exponential weighted moving average or a simple mean, respectively,
+	 * depending on whether the weight 'alpha' has been set for this gauge.
+	 *
 	 * @return The average over all the accumulated values
 	 */
 	public double getAverage() {
@@ -133,7 +114,6 @@ public final class RichGauge {
 	}
 
 	/**
-	 * Return the maximum value of the gauge.
 	 * @return the maximum value
 	 */
 	public double getMax() {
@@ -141,7 +121,6 @@ public final class RichGauge {
 	}
 
 	/**
-	 * Return the minimum value of the gauge.
 	 * @return the minimum value
 	 */
 	public double getMin() {
@@ -149,16 +128,14 @@ public final class RichGauge {
 	}
 
 	/**
-	 * Return the number of times the value has been set.
-	 * @return the value set count
+	 * @return Number of times the value has been set.
 	 */
 	public long getCount() {
 		return this.count;
 	}
 
 	/**
-	 * Return the smoothing constant value.
-	 * @return the alpha smoothing value
+	 * @return the smoothing constant value.
 	 */
 	public double getAlpha() {
 		return this.alpha;

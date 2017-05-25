@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.springframework.boot.cli.compiler;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,46 +42,48 @@ public abstract class AnnotatedNodeASTTransformation implements ASTTransformatio
 
 	private final Set<String> interestingAnnotationNames;
 
-	private final boolean removeAnnotations;
+	private List<AnnotationNode> annotationNodes = new ArrayList<AnnotationNode>();
 
 	private SourceUnit sourceUnit;
 
-	protected AnnotatedNodeASTTransformation(Set<String> interestingAnnotationNames,
-			boolean removeAnnotations) {
+	protected AnnotatedNodeASTTransformation(Set<String> interestingAnnotationNames) {
 		this.interestingAnnotationNames = interestingAnnotationNames;
-		this.removeAnnotations = removeAnnotations;
 	}
 
 	@Override
 	public void visit(ASTNode[] nodes, SourceUnit source) {
 		this.sourceUnit = source;
-		List<AnnotationNode> annotationNodes = new ArrayList<AnnotationNode>();
-		ClassVisitor classVisitor = new ClassVisitor(source, annotationNodes);
+
+		ClassVisitor classVisitor = new ClassVisitor(source);
 		for (ASTNode node : nodes) {
 			if (node instanceof ModuleNode) {
 				ModuleNode module = (ModuleNode) node;
-				visitAnnotatedNode(module.getPackage(), annotationNodes);
+
+				visitAnnotatedNode(module.getPackage());
+
 				for (ImportNode importNode : module.getImports()) {
-					visitAnnotatedNode(importNode, annotationNodes);
+					visitAnnotatedNode(importNode);
 				}
 				for (ImportNode importNode : module.getStarImports()) {
-					visitAnnotatedNode(importNode, annotationNodes);
+					visitAnnotatedNode(importNode);
 				}
 				for (Map.Entry<String, ImportNode> entry : module.getStaticImports()
 						.entrySet()) {
-					visitAnnotatedNode(entry.getValue(), annotationNodes);
+					visitAnnotatedNode(entry.getValue());
 				}
 				for (Map.Entry<String, ImportNode> entry : module.getStaticStarImports()
 						.entrySet()) {
-					visitAnnotatedNode(entry.getValue(), annotationNodes);
+					visitAnnotatedNode(entry.getValue());
 				}
+
 				for (ClassNode classNode : module.getClasses()) {
-					visitAnnotatedNode(classNode, annotationNodes);
+					visitAnnotatedNode(classNode);
 					classNode.visitContents(classVisitor);
 				}
 			}
 		}
-		processAnnotationNodes(annotationNodes);
+
+		processAnnotationNodes(this.annotationNodes);
 	}
 
 	protected SourceUnit getSourceUnit() {
@@ -91,19 +92,12 @@ public abstract class AnnotatedNodeASTTransformation implements ASTTransformatio
 
 	protected abstract void processAnnotationNodes(List<AnnotationNode> annotationNodes);
 
-	private void visitAnnotatedNode(AnnotatedNode annotatedNode,
-			List<AnnotationNode> annotatedNodes) {
+	private void visitAnnotatedNode(AnnotatedNode annotatedNode) {
 		if (annotatedNode != null) {
-			Iterator<AnnotationNode> annotationNodes = annotatedNode.getAnnotations()
-					.iterator();
-			while (annotationNodes.hasNext()) {
-				AnnotationNode annotationNode = annotationNodes.next();
-				if (this.interestingAnnotationNames
-						.contains(annotationNode.getClassNode().getName())) {
-					annotatedNodes.add(annotationNode);
-					if (this.removeAnnotations) {
-						annotationNodes.remove();
-					}
+			for (AnnotationNode annotationNode : annotatedNode.getAnnotations()) {
+				if (this.interestingAnnotationNames.contains(annotationNode
+						.getClassNode().getName())) {
+					this.annotationNodes.add(annotationNode);
 				}
 			}
 		}
@@ -113,11 +107,8 @@ public abstract class AnnotatedNodeASTTransformation implements ASTTransformatio
 
 		private final SourceUnit source;
 
-		private List<AnnotationNode> annotationNodes;
-
-		ClassVisitor(SourceUnit source, List<AnnotationNode> annotationNodes) {
+		public ClassVisitor(SourceUnit source) {
 			this.source = source;
-			this.annotationNodes = annotationNodes;
 		}
 
 		@Override
@@ -127,9 +118,8 @@ public abstract class AnnotatedNodeASTTransformation implements ASTTransformatio
 
 		@Override
 		public void visitAnnotations(AnnotatedNode node) {
-			visitAnnotatedNode(node, this.annotationNodes);
+			visitAnnotatedNode(node);
 		}
 
 	}
-
 }

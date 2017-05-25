@@ -4,12 +4,11 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starters</artifactId>
-		<version>1.5.4.BUILD-SNAPSHOT</version>
+		<version>1.2.2.BUILD-SNAPSHOT</version>
 	</parent>
 	<artifactId>spring-boot-starter-undertow</artifactId>
 	<name>Spring Boot Undertow Starter</name>
-	<description>Starter for using Undertow as the embedded servlet container. An
-		alternative to spring-boot-starter-tomcat</description>
+	<description>Spring Boot Undertow Starter</description>
 	<url>http://projects.spring.io/spring-boot/</url>
 	<organization>
 		<name>Pivotal Software, Inc.</name>

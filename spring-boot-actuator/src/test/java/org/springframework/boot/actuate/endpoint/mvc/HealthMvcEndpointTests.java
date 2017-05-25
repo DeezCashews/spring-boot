@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,10 @@
 
 package org.springframework.boot.actuate.endpoint.mvc;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
-
 import org.springframework.boot.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
@@ -33,14 +28,15 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.env.MockEnvironment;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -48,17 +44,12 @@ import static org.mockito.Mockito.mock;
  *
  * @author Christian Dupuis
  * @author Dave Syer
- * @author Andy Wilkinson
- * @author Eddú Meléndez
- * @author Madhura Bhave
  */
 public class HealthMvcEndpointTests {
 
-	private static final PropertySource<?> SECURITY_ROLES = new MapPropertySource("test",
-			Collections.<String, Object>singletonMap("management.security.roles",
-					"HERO"));
-
-	private HttpServletRequest request = new MockHttpServletRequest();
+	private static final PropertySource<?> NON_SENSITIVE = new MapPropertySource("test",
+			Collections.<String, Object> singletonMap("endpoints.health.sensitive",
+					"false"));
 
 	private HealthEndpoint endpoint = null;
 
@@ -66,15 +57,9 @@ public class HealthMvcEndpointTests {
 
 	private MockEnvironment environment;
 
-	private HttpServletRequest defaultUser = createAuthenticationRequest("ROLE_ACTUATOR");
-
-	private HttpServletRequest hero = createAuthenticationRequest("HERO");
-
-	private HttpServletRequest createAuthenticationRequest(String role) {
-		MockServletContext servletContext = new MockServletContext();
-		servletContext.declareRoles(role);
-		return new MockHttpServletRequest(servletContext);
-	}
+	private UsernamePasswordAuthenticationToken user = new UsernamePasswordAuthenticationToken(
+			"user", "password",
+			AuthorityUtils.commaSeparatedStringToAuthorityList("ROLE_USER"));
 
 	@Before
 	public void init() {
@@ -88,193 +73,126 @@ public class HealthMvcEndpointTests {
 	@Test
 	public void up() {
 		given(this.endpoint.invoke()).willReturn(new Health.Builder().up().build());
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
+		Object result = this.mvc.invoke(null);
+		assertTrue(result instanceof Health);
+		assertTrue(((Health) result).getStatus() == Status.UP);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
 	public void down() {
 		given(this.endpoint.invoke()).willReturn(new Health.Builder().down().build());
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof ResponseEntity).isTrue();
+		Object result = this.mvc.invoke(null);
+		assertTrue(result instanceof ResponseEntity);
 		ResponseEntity<Health> response = (ResponseEntity<Health>) result;
-		assertThat(response.getBody().getStatus() == Status.DOWN).isTrue();
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+		assertTrue(response.getBody().getStatus() == Status.DOWN);
+		assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
 	}
 
-	@Test
 	@SuppressWarnings("unchecked")
+	@Test
 	public void customMapping() {
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().status("OK").build());
-		this.mvc.setStatusMapping(
-				Collections.singletonMap("OK", HttpStatus.INTERNAL_SERVER_ERROR));
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof ResponseEntity).isTrue();
-		ResponseEntity<Health> response = (ResponseEntity<Health>) result;
-		assertThat(response.getBody().getStatus().equals(new Status("OK"))).isTrue();
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-	}
-
-	@Test
-	@SuppressWarnings("unchecked")
-	public void customMappingWithRelaxedName() {
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().outOfService().build());
-		this.mvc.setStatusMapping(Collections.singletonMap("out-of-service",
+		given(this.endpoint.invoke()).willReturn(
+				new Health.Builder().status("OK").build());
+		this.mvc.setStatusMapping(Collections.singletonMap("OK",
 				HttpStatus.INTERNAL_SERVER_ERROR));
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof ResponseEntity).isTrue();
+		Object result = this.mvc.invoke(null);
+		assertTrue(result instanceof ResponseEntity);
 		ResponseEntity<Health> response = (ResponseEntity<Health>) result;
-		assertThat(response.getBody().getStatus().equals(Status.OUT_OF_SERVICE)).isTrue();
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+		assertTrue(response.getBody().getStatus().equals(new Status("OK")));
+		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
 	}
 
 	@Test
-	public void presenceOfRightRoleShouldExposeDetails() {
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
+	public void secure() {
+		given(this.endpoint.invoke()).willReturn(
+				new Health.Builder().up().withDetail("foo", "bar").build());
+		given(this.endpoint.isSensitive()).willReturn(false);
+		Object result = this.mvc.invoke(this.user);
+		assertTrue(result instanceof Health);
+		assertTrue(((Health) result).getStatus() == Status.UP);
+		assertEquals("bar", ((Health) result).getDetails().get("foo"));
 	}
 
 	@Test
-	public void managementSecurityDisabledShouldExposeDetails() throws Exception {
-		this.mvc = new HealthMvcEndpoint(this.endpoint, false);
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
-	}
-
-	@Test
-	public void rightRoleNotPresentShouldNotExposeDetails() {
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.hero, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isNull();
-	}
-
-	@Test
-	public void rightAuthorityPresentShouldExposeDetails() throws Exception {
-		this.environment.getPropertySources().addLast(SECURITY_ROLES);
-		Authentication principal = mock(Authentication.class);
-		Set<SimpleGrantedAuthority> authorities = Collections
-				.singleton(new SimpleGrantedAuthority("HERO"));
-		doReturn(authorities).when(principal).getAuthorities();
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, principal);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
-	}
-
-	@Test
-	public void customRolePresentShouldExposeDetails() {
-		this.environment.getPropertySources().addLast(SECURITY_ROLES);
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.hero, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
-	}
-
-	@Test
-	public void customRoleShouldNotExposeDetailsForDefaultRole() {
-		this.environment.getPropertySources().addLast(SECURITY_ROLES);
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isNull();
-	}
-
-	@Test
-	public void customRoleFromListShouldExposeDetails() {
-		// gh-8314
-		this.mvc = new HealthMvcEndpoint(this.endpoint, true,
-				Arrays.asList("HERO", "USER"));
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.hero, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
-	}
-
-	@Test
-	public void customRoleFromListShouldNotExposeDetailsForDefaultRole() {
-		// gh-8314
-		this.mvc = new HealthMvcEndpoint(this.endpoint, true,
-				Arrays.asList("HERO", "USER"));
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isNull();
-	}
-
-	@Test
-	public void healthIsCached() {
+	public void secureNotCached() {
 		given(this.endpoint.getTimeToLive()).willReturn(10000L);
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, null);
-		assertThat(result instanceof Health).isTrue();
-		Health health = (Health) result;
-		assertThat(health.getStatus() == Status.UP).isTrue();
-		assertThat(health.getDetails()).hasSize(1);
-		assertThat(health.getDetails().get("foo")).isEqualTo("bar");
+		given(this.endpoint.isSensitive()).willReturn(false);
+		given(this.endpoint.invoke()).willReturn(
+				new Health.Builder().up().withDetail("foo", "bar").build());
+		Object result = this.mvc.invoke(this.user);
+		assertTrue(result instanceof Health);
+		assertTrue(((Health) result).getStatus() == Status.UP);
 		given(this.endpoint.invoke()).willReturn(new Health.Builder().down().build());
-		result = this.mvc.invoke(this.request, null); // insecure now
-		assertThat(result instanceof Health).isTrue();
-		health = (Health) result;
-		// so the result is cached
-		assertThat(health.getStatus() == Status.UP).isTrue();
-		// but the details are hidden
-		assertThat(health.getDetails()).isEmpty();
-	}
-
-	@Test
-	public void noCachingWhenTimeToLiveIsZero() {
-		given(this.endpoint.getTimeToLive()).willReturn(0L);
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		given(this.endpoint.invoke()).willReturn(new Health.Builder().down().build());
-		result = this.mvc.invoke(this.request, null);
+		result = this.mvc.invoke(this.user);
 		@SuppressWarnings("unchecked")
 		Health health = ((ResponseEntity<Health>) result).getBody();
-		assertThat(health.getStatus() == Status.DOWN).isTrue();
+		assertTrue(health.getStatus() == Status.DOWN);
+	}
+
+	@Test
+	public void unsecureCached() {
+		given(this.endpoint.getTimeToLive()).willReturn(10000L);
+		given(this.endpoint.isSensitive()).willReturn(true);
+		given(this.endpoint.invoke()).willReturn(
+				new Health.Builder().up().withDetail("foo", "bar").build());
+		Object result = this.mvc.invoke(this.user);
+		assertTrue(result instanceof Health);
+		Health health = (Health) result;
+		assertTrue(health.getStatus() == Status.UP);
+		assertThat(health.getDetails().size(), is(equalTo(1)));
+		assertThat(health.getDetails().get("foo"), is(equalTo((Object) "bar")));
+		given(this.endpoint.invoke()).willReturn(new Health.Builder().down().build());
+		result = this.mvc.invoke(null); // insecure now
+		assertTrue(result instanceof Health);
+		health = (Health) result;
+		// so the result is cached
+		assertTrue(health.getStatus() == Status.UP);
+		// but the details are hidden
+		assertThat(health.getDetails().size(), is(equalTo(0)));
+	}
+
+	@Test
+	public void unsecureAnonymousAccessUnrestricted() {
+		this.environment.getPropertySources().addLast(NON_SENSITIVE);
+		given(this.endpoint.invoke()).willReturn(
+				new Health.Builder().up().withDetail("foo", "bar").build());
+		Object result = this.mvc.invoke(null);
+		assertTrue(result instanceof Health);
+		assertTrue(((Health) result).getStatus() == Status.UP);
+		assertEquals("bar", ((Health) result).getDetails().get("foo"));
+	}
+
+	@Test
+	public void unsecureIsNotCachedWhenAnonymousAccessIsUnrestricted() {
+		this.environment.getPropertySources().addLast(NON_SENSITIVE);
+		given(this.endpoint.getTimeToLive()).willReturn(10000L);
+		given(this.endpoint.invoke()).willReturn(
+				new Health.Builder().up().withDetail("foo", "bar").build());
+		Object result = this.mvc.invoke(null);
+		assertTrue(result instanceof Health);
+		assertTrue(((Health) result).getStatus() == Status.UP);
+		given(this.endpoint.invoke()).willReturn(new Health.Builder().down().build());
+		result = this.mvc.invoke(null);
+		@SuppressWarnings("unchecked")
+		Health health = ((ResponseEntity<Health>) result).getBody();
+		assertTrue(health.getStatus() == Status.DOWN);
 	}
 
 	@Test
 	public void newValueIsReturnedOnceTtlExpires() throws InterruptedException {
 		given(this.endpoint.getTimeToLive()).willReturn(50L);
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
+		given(this.endpoint.isSensitive()).willReturn(false);
+		given(this.endpoint.invoke()).willReturn(
+				new Health.Builder().up().withDetail("foo", "bar").build());
+		Object result = this.mvc.invoke(null);
+		assertTrue(result instanceof Health);
+		assertTrue(((Health) result).getStatus() == Status.UP);
 		Thread.sleep(100);
 		given(this.endpoint.invoke()).willReturn(new Health.Builder().down().build());
-		result = this.mvc.invoke(this.request, null);
+		result = this.mvc.invoke(null);
 		@SuppressWarnings("unchecked")
 		Health health = ((ResponseEntity<Health>) result).getBody();
-		assertThat(health.getStatus() == Status.DOWN).isTrue();
+		assertTrue(health.getStatus() == Status.DOWN);
 	}
 }

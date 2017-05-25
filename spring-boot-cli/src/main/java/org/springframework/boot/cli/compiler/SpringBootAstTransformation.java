@@ -20,7 +20,7 @@ import org.codehaus.groovy.transform.ASTTransformation;
 
 /**
  * Marker interface for AST transformations that should be installed automatically from
- * {@code META-INF/services}.
+ * META-INF/services
  *
  * @author Dave Syer
  */

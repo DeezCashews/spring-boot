@@ -90,7 +90,7 @@ public class CommandException extends RuntimeException {
 	/**
 	 * Specific options understood by the {@link CommandRunner}.
 	 */
-	public enum Option {
+	public static enum Option {
 
 		/**
 		 * Hide the exception message.

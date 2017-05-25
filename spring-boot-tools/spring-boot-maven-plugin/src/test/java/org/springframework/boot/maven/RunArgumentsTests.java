@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@ package org.springframework.boot.maven;
 
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Tests for {@link RunArguments}.
@@ -30,48 +31,47 @@ public class RunArgumentsTests {
 	@Test
 	public void parseNull() {
 		String[] args = parseArgs(null);
-		assertThat(args).isNotNull();
-		assertThat(args.length).isEqualTo(0);
+		assertNotNull(args);
+		assertEquals(0, args.length);
 	}
 
 	@Test
 	public void parseEmpty() {
 		String[] args = parseArgs("   ");
-		assertThat(args).isNotNull();
-		assertThat(args.length).isEqualTo(0);
+		assertNotNull(args);
+		assertEquals(0, args.length);
 	}
 
 	@Test
 	public void parseDebugFlags() {
-		String[] args = parseArgs(
-				"-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005");
-		assertThat(args.length).isEqualTo(2);
-		assertThat(args[0]).isEqualTo("-Xdebug");
-		assertThat(args[1]).isEqualTo(
-				"-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005");
+		String[] args = parseArgs("-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005");
+		assertEquals(2, args.length);
+		assertEquals("-Xdebug", args[0]);
+		assertEquals("-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
+				args[1]);
 	}
 
 	@Test
 	public void parseWithExtraSpaces() {
 		String[] args = parseArgs("     -Dfoo=bar        -Dfoo2=bar2  ");
-		assertThat(args.length).isEqualTo(2);
-		assertThat(args[0]).isEqualTo("-Dfoo=bar");
-		assertThat(args[1]).isEqualTo("-Dfoo2=bar2");
+		assertEquals(2, args.length);
+		assertEquals("-Dfoo=bar", args[0]);
+		assertEquals("-Dfoo2=bar2", args[1]);
 	}
 
 	@Test
 	public void parseWithNewLinesAndTabs() {
 		String[] args = parseArgs("     -Dfoo=bar \n" + "\t\t -Dfoo2=bar2  ");
-		assertThat(args.length).isEqualTo(2);
-		assertThat(args[0]).isEqualTo("-Dfoo=bar");
-		assertThat(args[1]).isEqualTo("-Dfoo2=bar2");
+		assertEquals(2, args.length);
+		assertEquals("-Dfoo=bar", args[0]);
+		assertEquals("-Dfoo2=bar2", args[1]);
 	}
 
 	@Test
 	public void quoteHandledProperly() {
 		String[] args = parseArgs("-Dvalue=\"My Value\"    ");
-		assertThat(args.length).isEqualTo(1);
-		assertThat(args[0]).isEqualTo("-Dvalue=My Value");
+		assertEquals(1, args.length);
+		assertEquals("-Dvalue=My Value", args[0]);
 	}
 
 	private String[] parseArgs(String args) {

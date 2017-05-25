@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package org.springframework.boot.cli.compiler.autoconfigure;
 
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
-
 import org.springframework.boot.cli.compiler.AstUtils;
 import org.springframework.boot.cli.compiler.CompilerAutoConfiguration;
 import org.springframework.boot.cli.compiler.DependencyCustomizer;
@@ -29,8 +28,7 @@ import org.springframework.boot.cli.compiler.DependencyCustomizer;
  * @author Dave Syer
  * @author Artem Bilan
  */
-public class SpringIntegrationCompilerAutoConfiguration
-		extends CompilerAutoConfiguration {
+public class SpringIntegrationCompilerAutoConfiguration extends CompilerAutoConfiguration {
 
 	@Override
 	public boolean matches(ClassNode classNode) {
@@ -40,10 +38,9 @@ public class SpringIntegrationCompilerAutoConfiguration
 
 	@Override
 	public void applyDependencies(DependencyCustomizer dependencies) {
-		dependencies
-				.ifAnyMissingClasses(
-						"org.springframework.integration.config.EnableIntegration")
-				.add("spring-boot-starter-integration");
+		dependencies.ifAnyMissingClasses(
+				"org.springframework.integration.config.EnableIntegration").add(
+				"spring-boot-starter-integration");
 	}
 
 	@Override
@@ -61,5 +58,4 @@ public class SpringIntegrationCompilerAutoConfiguration
 				"org.springframework.integration.config.EnableIntegration");
 		imports.addStarImports("org.springframework.integration.annotation");
 	}
-
 }

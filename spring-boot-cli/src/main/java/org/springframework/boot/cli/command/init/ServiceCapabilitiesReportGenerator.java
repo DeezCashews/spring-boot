@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,15 +23,13 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SortedSet;
-import java.util.TreeSet;
+
+import org.codehaus.plexus.util.StringUtils;
 
 /**
  * A helper class generating a report from the meta-data of a particular service.
  *
  * @author Stephane Nicoll
- * @author Andy Wilkinson
  * @since 1.2.0
  */
 class ServiceCapabilitiesReportGenerator {
@@ -42,7 +40,7 @@ class ServiceCapabilitiesReportGenerator {
 
 	/**
 	 * Creates an instance using the specified {@link InitializrService}.
-	 * @param initializrService the initializr service
+	 * @param initializrService the initialzr service
 	 */
 	ServiceCapabilitiesReportGenerator(InitializrService initializrService) {
 		this.initializrService = initializrService;
@@ -50,31 +48,24 @@ class ServiceCapabilitiesReportGenerator {
 
 	/**
 	 * Generate a report for the specified service. The report contains the available
-	 * capabilities as advertised by the root endpoint.
+	 * capabilities as advertized by the root endpoint.
 	 * @param url the url of the service
 	 * @return the report that describes the service
 	 * @throws IOException if the report cannot be generated
 	 */
 	public String generate(String url) throws IOException {
-		Object content = this.initializrService.loadServiceCapabilities(url);
-		if (content instanceof InitializrServiceMetadata) {
-			return generateHelp(url, (InitializrServiceMetadata) content);
-		}
-		return content.toString();
-	}
-
-	private String generateHelp(String url, InitializrServiceMetadata metadata) {
+		InitializrServiceMetadata metadata = this.initializrService.loadMetadata(url);
 		String header = "Capabilities of " + url;
 		StringBuilder report = new StringBuilder();
-		report.append(repeat("=", header.length()) + NEW_LINE);
+		report.append(StringUtils.repeat("=", header.length()) + NEW_LINE);
 		report.append(header + NEW_LINE);
-		report.append(repeat("=", header.length()) + NEW_LINE);
+		report.append(StringUtils.repeat("=", header.length()) + NEW_LINE);
 		report.append(NEW_LINE);
 		reportAvailableDependencies(metadata, report);
 		report.append(NEW_LINE);
-		reportAvailableProjectTypes(metadata, report);
+		reportAvilableProjectTypes(metadata, report);
 		report.append(NEW_LINE);
-		reportDefaults(report, metadata);
+		z(metadata, report);
 		return report.toString();
 	}
 
@@ -104,24 +95,15 @@ class ServiceCapabilitiesReportGenerator {
 		return dependencies;
 	}
 
-	private void reportAvailableProjectTypes(InitializrServiceMetadata metadata,
+	private void reportAvilableProjectTypes(InitializrServiceMetadata metadata,
 			StringBuilder report) {
 		report.append("Available project types:" + NEW_LINE);
 		report.append("------------------------" + NEW_LINE);
-		SortedSet<Entry<String, ProjectType>> entries = new TreeSet<Entry<String, ProjectType>>(
-				new Comparator<Entry<String, ProjectType>>() {
-
-					@Override
-					public int compare(Entry<String, ProjectType> o1,
-							Entry<String, ProjectType> o2) {
-						return o1.getKey().compareTo(o2.getKey());
-					}
-
-				});
-		entries.addAll(metadata.getProjectTypes().entrySet());
-		for (Entry<String, ProjectType> entry : entries) {
-			ProjectType type = entry.getValue();
-			report.append(entry.getKey() + " -  " + type.getName());
+		List<String> typeIds = new ArrayList<String>(metadata.getProjectTypes().keySet());
+		Collections.sort(typeIds);
+		for (String typeId : typeIds) {
+			ProjectType type = metadata.getProjectTypes().get(typeId);
+			report.append(typeId + " -  " + type.getName());
 			if (!type.getTags().isEmpty()) {
 				reportTags(report, type);
 			}
@@ -146,25 +128,15 @@ class ServiceCapabilitiesReportGenerator {
 		report.append("]");
 	}
 
-	private void reportDefaults(StringBuilder report,
-			InitializrServiceMetadata metadata) {
+	private void z(InitializrServiceMetadata metadata, StringBuilder report) {
 		report.append("Defaults:" + NEW_LINE);
 		report.append("---------" + NEW_LINE);
-		List<String> defaultsKeys = new ArrayList<String>(
-				metadata.getDefaults().keySet());
+		List<String> defaultsKeys = new ArrayList<String>(metadata.getDefaults().keySet());
 		Collections.sort(defaultsKeys);
 		for (String defaultsKey : defaultsKeys) {
 			String defaultsValue = metadata.getDefaults().get(defaultsKey);
 			report.append(defaultsKey + ": " + defaultsValue + NEW_LINE);
 		}
-	}
-
-	private static String repeat(String s, int count) {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < count; i++) {
-			sb.append(s);
-		}
-		return sb.toString();
 	}
 
 }

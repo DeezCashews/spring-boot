@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,46 +16,63 @@
 
 package org.springframework.boot.autoconfigure.batch;
 
+import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
-import org.springframework.boot.autoconfigure.AbstractDatabaseInitializer;
+import org.springframework.batch.support.DatabaseType;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.util.Assert;
+import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.jdbc.support.MetaDataAccessException;
+import org.springframework.stereotype.Component;
 
 /**
  * Initialize the Spring Batch schema (ignoring errors, so should be idempotent).
  *
  * @author Dave Syer
- * @author Vedran Pavic
  */
-public class BatchDatabaseInitializer extends AbstractDatabaseInitializer {
+@Component
+public class BatchDatabaseInitializer {
 
-	private final BatchProperties properties;
+	@Autowired
+	private BatchProperties properties;
 
-	public BatchDatabaseInitializer(DataSource dataSource, ResourceLoader resourceLoader,
-			BatchProperties properties) {
-		super(dataSource, resourceLoader);
-		Assert.notNull(properties, "BatchProperties must not be null");
-		this.properties = properties;
-	}
+	@Autowired
+	private DataSource dataSource;
 
-	@Override
-	protected boolean isEnabled() {
-		return this.properties.getInitializer().isEnabled();
-	}
+	@Autowired
+	private ResourceLoader resourceLoader;
 
-	@Override
-	protected String getSchemaLocation() {
-		return this.properties.getSchema();
-	}
-
-	@Override
-	protected String getDatabaseName() {
-		String databaseName = super.getDatabaseName();
-		if ("oracle".equals(databaseName)) {
-			return "oracle10g";
+	@PostConstruct
+	protected void initialize() {
+		if (this.properties.getInitializer().isEnabled()) {
+			String platform = getDatabaseType();
+			if ("hsql".equals(platform)) {
+				platform = "hsqldb";
+			}
+			if ("postgres".equals(platform)) {
+				platform = "postgresql";
+			}
+			if ("oracle".equals(platform)) {
+				platform = "oracle10g";
+			}
+			ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+			String schemaLocation = this.properties.getSchema();
+			schemaLocation = schemaLocation.replace("@@platform@@", platform);
+			populator.addScript(this.resourceLoader.getResource(schemaLocation));
+			populator.setContinueOnError(true);
+			DatabasePopulatorUtils.execute(populator, this.dataSource);
 		}
-		return databaseName;
+	}
+
+	private String getDatabaseType() {
+		try {
+			return DatabaseType.fromMetaData(this.dataSource).toString().toLowerCase();
+		}
+		catch (MetaDataAccessException ex) {
+			throw new IllegalStateException("Unable to detect database type", ex);
+		}
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.springframework.boot.actuate.trace;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -27,40 +26,24 @@ import java.util.Map;
  * In-memory implementation of {@link TraceRepository}.
  *
  * @author Dave Syer
- * @author Olivier Bourgain
  */
 public class InMemoryTraceRepository implements TraceRepository {
 
 	private int capacity = 100;
 
-	private boolean reverse = true;
-
-	private final List<Trace> traces = new LinkedList<Trace>();
+	private final List<Trace> traces = new ArrayList<Trace>();
 
 	/**
-	 * Flag to say that the repository lists traces in reverse order.
-	 * @param reverse flag value (default true)
-	 */
-	public void setReverse(boolean reverse) {
-		synchronized (this.traces) {
-			this.reverse = reverse;
-		}
-	}
-
-	/**
-	 * Set the capacity of the in-memory repository.
-	 * @param capacity the capacity
+	 * @param capacity the capacity to set
 	 */
 	public void setCapacity(int capacity) {
-		synchronized (this.traces) {
-			this.capacity = capacity;
-		}
+		this.capacity = capacity;
 	}
 
 	@Override
 	public List<Trace> findAll() {
 		synchronized (this.traces) {
-			return Collections.unmodifiableList(new ArrayList<Trace>(this.traces));
+			return Collections.unmodifiableList(this.traces);
 		}
 	}
 
@@ -69,14 +52,9 @@ public class InMemoryTraceRepository implements TraceRepository {
 		Trace trace = new Trace(new Date(), map);
 		synchronized (this.traces) {
 			while (this.traces.size() >= this.capacity) {
-				this.traces.remove(this.reverse ? this.capacity - 1 : 0);
+				this.traces.remove(0);
 			}
-			if (this.reverse) {
-				this.traces.add(0, trace);
-			}
-			else {
-				this.traces.add(trace);
-			}
+			this.traces.add(trace);
 		}
 	}
 

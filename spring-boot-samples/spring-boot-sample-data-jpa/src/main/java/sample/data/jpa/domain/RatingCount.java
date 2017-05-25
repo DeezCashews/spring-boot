@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,26 @@
 
 package sample.data.jpa.domain;
 
-public interface RatingCount {
+import java.io.Serializable;
 
-	Rating getRating();
+public class RatingCount implements Serializable {
 
-	long getCount();
+	private static final long serialVersionUID = 1L;
 
+	private final Rating rating;
+
+	private final long count;
+
+	public RatingCount(Rating rating, long count) {
+		this.rating = rating;
+		this.count = count;
+	}
+
+	public Rating getRating() {
+		return this.rating;
+	}
+
+	public long getCount() {
+		return this.count;
+	}
 }

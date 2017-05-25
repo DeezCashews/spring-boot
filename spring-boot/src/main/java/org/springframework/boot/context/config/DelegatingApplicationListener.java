@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.springframework.boot.context.config;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.BeanUtils;
@@ -40,8 +39,8 @@ import org.springframework.util.StringUtils;
  * @author Dave Syer
  * @author Phillip Webb
  */
-public class DelegatingApplicationListener
-		implements ApplicationListener<ApplicationEvent>, Ordered {
+public class DelegatingApplicationListener implements
+		ApplicationListener<ApplicationEvent>, Ordered {
 
 	// NOTE: Similar to org.springframework.web.context.ContextLoader
 
@@ -54,8 +53,8 @@ public class DelegatingApplicationListener
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
 		if (event instanceof ApplicationEnvironmentPreparedEvent) {
-			List<ApplicationListener<ApplicationEvent>> delegates = getListeners(
-					((ApplicationEnvironmentPreparedEvent) event).getEnvironment());
+			List<ApplicationListener<ApplicationEvent>> delegates = getListeners(((ApplicationEnvironmentPreparedEvent) event)
+					.getEnvironment());
 			if (delegates.isEmpty()) {
 				return;
 			}
@@ -71,11 +70,8 @@ public class DelegatingApplicationListener
 
 	@SuppressWarnings("unchecked")
 	private List<ApplicationListener<ApplicationEvent>> getListeners(
-			ConfigurableEnvironment environment) {
-		if (environment == null) {
-			return Collections.emptyList();
-		}
-		String classNames = environment.getProperty(PROPERTY_NAME);
+			ConfigurableEnvironment env) {
+		String classNames = env.getProperty(PROPERTY_NAME);
 		List<ApplicationListener<ApplicationEvent>> listeners = new ArrayList<ApplicationListener<ApplicationEvent>>();
 		if (StringUtils.hasLength(classNames)) {
 			for (String className : StringUtils.commaDelimitedListToSet(classNames)) {

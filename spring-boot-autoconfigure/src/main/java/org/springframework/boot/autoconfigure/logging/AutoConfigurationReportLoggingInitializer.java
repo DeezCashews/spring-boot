@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,18 @@
 
 package org.springframework.boot.autoconfigure.logging;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.boot.autoconfigure.condition.ConditionEvaluationReport;
+import org.springframework.boot.autoconfigure.condition.ConditionEvaluationReport.ConditionAndOutcome;
+import org.springframework.boot.autoconfigure.condition.ConditionEvaluationReport.ConditionAndOutcomes;
 import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.context.ApplicationContextInitializer;
@@ -27,10 +35,11 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ApplicationContextEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.GenericApplicationListener;
+import org.springframework.context.event.SmartApplicationListener;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.Ordered;
-import org.springframework.core.ResolvableType;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * {@link ApplicationContextInitializer} that writes the {@link ConditionEvaluationReport}
@@ -43,10 +52,9 @@ import org.springframework.core.ResolvableType;
  * @author Greg Turnquist
  * @author Dave Syer
  * @author Phillip Webb
- * @author Andy Wilkinson
  */
-public class AutoConfigurationReportLoggingInitializer
-		implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+public class AutoConfigurationReportLoggingInitializer implements
+		ApplicationContextInitializer<ConfigurableApplicationContext> {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
@@ -60,22 +68,20 @@ public class AutoConfigurationReportLoggingInitializer
 		applicationContext.addApplicationListener(new AutoConfigurationReportListener());
 		if (applicationContext instanceof GenericApplicationContext) {
 			// Get the report early in case the context fails to load
-			this.report = ConditionEvaluationReport
-					.get(this.applicationContext.getBeanFactory());
+			this.report = ConditionEvaluationReport.get(this.applicationContext
+					.getBeanFactory());
 		}
 	}
 
 	protected void onApplicationEvent(ApplicationEvent event) {
 		ConfigurableApplicationContext initializerApplicationContext = AutoConfigurationReportLoggingInitializer.this.applicationContext;
 		if (event instanceof ContextRefreshedEvent) {
-			if (((ApplicationContextEvent) event)
-					.getApplicationContext() == initializerApplicationContext) {
+			if (((ApplicationContextEvent) event).getApplicationContext() == initializerApplicationContext) {
 				logAutoConfigurationReport();
 			}
 		}
 		else if (event instanceof ApplicationFailedEvent) {
-			if (((ApplicationFailedEvent) event)
-					.getApplicationContext() == initializerApplicationContext) {
+			if (((ApplicationFailedEvent) event).getApplicationContext() == initializerApplicationContext) {
 				logAutoConfigurationReport(true);
 			}
 		}
@@ -92,24 +98,87 @@ public class AutoConfigurationReportLoggingInitializer
 						+ "due to missing ApplicationContext");
 				return;
 			}
-			this.report = ConditionEvaluationReport
-					.get(this.applicationContext.getBeanFactory());
+			this.report = ConditionEvaluationReport.get(this.applicationContext
+					.getBeanFactory());
 		}
-		if (!this.report.getConditionAndOutcomesBySource().isEmpty()) {
+		if (this.report.getConditionAndOutcomesBySource().size() > 0) {
 			if (isCrashReport && this.logger.isInfoEnabled()
 					&& !this.logger.isDebugEnabled()) {
-				this.logger.info(String
-						.format("%n%nError starting ApplicationContext. To display the "
-								+ "auto-configuration report re-run your application with "
-								+ "'debug' enabled."));
+				this.logger.info("\n\nError starting ApplicationContext. "
+						+ "To display the auto-configuration report enabled "
+						+ "debug logging (start with --debug)\n\n");
 			}
 			if (this.logger.isDebugEnabled()) {
-				this.logger.debug(new ConditionEvaluationReportMessage(this.report));
+				this.logger.debug(getLogMessage(this.report
+						.getConditionAndOutcomesBySource()));
 			}
 		}
 	}
 
-	private class AutoConfigurationReportListener implements GenericApplicationListener {
+	private StringBuilder getLogMessage(Map<String, ConditionAndOutcomes> outcomes) {
+		StringBuilder message = new StringBuilder();
+		message.append("\n\n\n");
+		message.append("=========================\n");
+		message.append("AUTO-CONFIGURATION REPORT\n");
+		message.append("=========================\n\n\n");
+		message.append("Positive matches:\n");
+		message.append("-----------------\n");
+		Map<String, ConditionAndOutcomes> shortOutcomes = orderByName(outcomes);
+		for (Map.Entry<String, ConditionAndOutcomes> entry : shortOutcomes.entrySet()) {
+			if (entry.getValue().isFullMatch()) {
+				addLogMessage(message, entry.getKey(), entry.getValue());
+			}
+		}
+		message.append("\n\n");
+		message.append("Negative matches:\n");
+		message.append("-----------------\n");
+		for (Map.Entry<String, ConditionAndOutcomes> entry : shortOutcomes.entrySet()) {
+			if (!entry.getValue().isFullMatch()) {
+				addLogMessage(message, entry.getKey(), entry.getValue());
+			}
+		}
+		message.append("\n\n");
+		return message;
+	}
+
+	private Map<String, ConditionAndOutcomes> orderByName(
+			Map<String, ConditionAndOutcomes> outcomes) {
+		Map<String, ConditionAndOutcomes> result = new LinkedHashMap<String, ConditionAndOutcomes>();
+		List<String> names = new ArrayList<String>();
+		Map<String, String> classNames = new HashMap<String, String>();
+		for (String name : outcomes.keySet()) {
+			String shortName = ClassUtils.getShortName(name);
+			names.add(shortName);
+			classNames.put(shortName, name);
+		}
+		Collections.sort(names);
+		for (String shortName : names) {
+			result.put(shortName, outcomes.get(classNames.get(shortName)));
+		}
+		return result;
+	}
+
+	private void addLogMessage(StringBuilder message, String source,
+			ConditionAndOutcomes conditionAndOutcomes) {
+		message.append("\n   " + source + "\n");
+		for (ConditionAndOutcome conditionAndOutcome : conditionAndOutcomes) {
+			message.append("      - ");
+			if (StringUtils.hasLength(conditionAndOutcome.getOutcome().getMessage())) {
+				message.append(conditionAndOutcome.getOutcome().getMessage());
+			}
+			else {
+				message.append(conditionAndOutcome.getOutcome().isMatch() ? "matched"
+						: "did not match");
+			}
+			message.append(" (");
+			message.append(ClassUtils.getShortName(conditionAndOutcome.getCondition()
+					.getClass()));
+			message.append(")\n");
+		}
+
+	}
+
+	private class AutoConfigurationReportListener implements SmartApplicationListener {
 
 		@Override
 		public int getOrder() {
@@ -117,11 +186,7 @@ public class AutoConfigurationReportLoggingInitializer
 		}
 
 		@Override
-		public boolean supportsEventType(ResolvableType resolvableType) {
-			Class<?> type = resolvableType.getRawClass();
-			if (type == null) {
-				return false;
-			}
+		public boolean supportsEventType(Class<? extends ApplicationEvent> type) {
 			return ContextRefreshedEvent.class.isAssignableFrom(type)
 					|| ApplicationFailedEvent.class.isAssignableFrom(type);
 		}

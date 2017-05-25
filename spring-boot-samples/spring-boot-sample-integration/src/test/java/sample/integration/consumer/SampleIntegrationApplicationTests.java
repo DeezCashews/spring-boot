@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,18 +18,15 @@ package sample.integration.consumer;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import sample.integration.SampleIntegrationApplication;
-import sample.integration.producer.ProducerApplication;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -38,7 +35,10 @@ import org.springframework.core.io.support.ResourcePatternUtils;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StreamUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import sample.integration.SampleIntegrationApplication;
+import sample.integration.producer.ProducerApplication;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Basic integration tests for service demo application.
@@ -48,46 +48,35 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class SampleIntegrationApplicationTests {
 
-	private ConfigurableApplicationContext context;
+	private static ConfigurableApplicationContext context;
+
+	@BeforeClass
+	public static void start() throws Exception {
+		context = SpringApplication.run(SampleIntegrationApplication.class);
+	}
+
+	@AfterClass
+	public static void stop() {
+		if (context != null) {
+			context.close();
+		}
+	}
 
 	@Before
-	public void deleteInputAndOutput() throws InterruptedException {
-		deleteIfExists(new File("target/input"));
-		deleteIfExists(new File("target/output"));
-	}
-
-	private void deleteIfExists(File directory) throws InterruptedException {
-		if (directory.exists()) {
-			assertThat(FileSystemUtils.deleteRecursively(directory)).isTrue();
-		}
-	}
-
-	@After
-	public void stop() {
-		if (this.context != null) {
-			this.context.close();
-		}
+	public void deleteOutput() {
+		FileSystemUtils.deleteRecursively(new File("target/output"));
 	}
 
 	@Test
 	public void testVanillaExchange() throws Exception {
-		this.context = SpringApplication.run(SampleIntegrationApplication.class);
 		SpringApplication.run(ProducerApplication.class, "World");
 		String output = getOutput();
-		assertThat(output).contains("Hello World");
-	}
-
-	@Test
-	public void testMessageGateway() throws Exception {
-		this.context = SpringApplication.run(SampleIntegrationApplication.class,
-				"testviamg");
-		String output = getOutput();
-		assertThat(output).contains("testviamg");
+		assertTrue("Wrong output: " + output, output.contains("Hello World"));
 	}
 
 	private String getOutput() throws Exception {
-		Future<String> future = Executors.newSingleThreadExecutor()
-				.submit(new Callable<String>() {
+		Future<String> future = Executors.newSingleThreadExecutor().submit(
+				new Callable<String>() {
 					@Override
 					public String call() throws Exception {
 						Resource[] resources = getResourcesWithContent();
@@ -97,14 +86,8 @@ public class SampleIntegrationApplicationTests {
 						}
 						StringBuilder builder = new StringBuilder();
 						for (Resource resource : resources) {
-							InputStream inputStream = resource.getInputStream();
-							try {
-								builder.append(new String(
-										StreamUtils.copyToByteArray(inputStream)));
-							}
-							finally {
-								inputStream.close();
-							}
+							builder.append(new String(StreamUtils
+									.copyToByteArray(resource.getInputStream())));
 						}
 						return builder.toString();
 					}
@@ -113,9 +96,8 @@ public class SampleIntegrationApplicationTests {
 	}
 
 	private Resource[] getResourcesWithContent() throws IOException {
-		Resource[] candidates = ResourcePatternUtils
-				.getResourcePatternResolver(new DefaultResourceLoader())
-				.getResources("file:target/output/**");
+		Resource[] candidates = ResourcePatternUtils.getResourcePatternResolver(
+				new DefaultResourceLoader()).getResources("file:target/output/**");
 		for (Resource candidate : candidates) {
 			if (candidate.contentLength() == 0) {
 				return new Resource[0];

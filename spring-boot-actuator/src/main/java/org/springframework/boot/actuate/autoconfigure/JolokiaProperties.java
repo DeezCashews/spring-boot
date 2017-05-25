@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class JolokiaProperties {
 
 	/**
-	 * Jolokia settings. These are traditionally set using servlet parameters. Refer to
+	 * Jolokia settings. These are traditionally set using servlet parameters, refer to
 	 * the documentation of Jolokia for more details.
 	 */
 	private Map<String, String> config = new HashMap<String, String>();
@@ -43,5 +43,4 @@ public class JolokiaProperties {
 	public void setConfig(Map<String, String> config) {
 		this.config = config;
 	}
-
 }

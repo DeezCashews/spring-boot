@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,19 +30,10 @@ import org.springframework.context.ConfigurableApplicationContext;
  *
  * @author Dave Syer
  * @author Christian Dupuis
- * @author Andy Wilkinson
  */
-@ConfigurationProperties(prefix = "endpoints.shutdown")
-public class ShutdownEndpoint extends AbstractEndpoint<Map<String, Object>>
-		implements ApplicationContextAware {
-
-	private static final Map<String, Object> NO_CONTEXT_MESSAGE = Collections
-			.unmodifiableMap(Collections.<String, Object>singletonMap("message",
-					"No context to shutdown."));
-
-	private static final Map<String, Object> SHUTDOWN_MESSAGE = Collections
-			.unmodifiableMap(Collections.<String, Object>singletonMap("message",
-					"Shutting down, bye..."));
+@ConfigurationProperties(prefix = "endpoints.shutdown", ignoreUnknownFields = false)
+public class ShutdownEndpoint extends AbstractEndpoint<Map<String, Object>> implements
+		ApplicationContextAware {
 
 	private ConfigurableApplicationContext context;
 
@@ -55,27 +46,31 @@ public class ShutdownEndpoint extends AbstractEndpoint<Map<String, Object>>
 
 	@Override
 	public Map<String, Object> invoke() {
+
 		if (this.context == null) {
-			return NO_CONTEXT_MESSAGE;
+			return Collections.<String, Object> singletonMap("message",
+					"No context to shutdown.");
 		}
+
 		try {
-			return SHUTDOWN_MESSAGE;
+			return Collections.<String, Object> singletonMap("message",
+					"Shutting down, bye...");
 		}
 		finally {
-			Thread thread = new Thread(new Runnable() {
+
+			new Thread(new Runnable() {
 				@Override
 				public void run() {
 					try {
 						Thread.sleep(500L);
 					}
 					catch (InterruptedException ex) {
-						Thread.currentThread().interrupt();
+						// Swallow exception and continue
 					}
 					ShutdownEndpoint.this.context.close();
 				}
-			});
-			thread.setContextClassLoader(getClass().getClassLoader());
-			thread.start();
+			}).start();
+
 		}
 	}
 

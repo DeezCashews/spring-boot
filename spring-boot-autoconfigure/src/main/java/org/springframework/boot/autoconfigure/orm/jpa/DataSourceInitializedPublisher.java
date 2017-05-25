@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,33 +64,20 @@ class DataSourceInitializedPublisher implements BeanPostProcessor {
 		if (bean instanceof JpaProperties) {
 			this.properties = (JpaProperties) bean;
 		}
-		if (bean instanceof EntityManagerFactory) {
-			publishEventIfRequired((EntityManagerFactory) bean);
+		if (bean instanceof EntityManagerFactory && this.dataSource != null
+				&& isInitializingDatabase()) {
+			this.applicationContext.publishEvent(new DataSourceInitializedEvent(
+					this.dataSource));
 		}
 		return bean;
 	}
 
-	private void publishEventIfRequired(EntityManagerFactory entityManagerFactory) {
-		DataSource dataSource = findDataSource(entityManagerFactory);
-		if (dataSource != null && isInitializingDatabase(dataSource)) {
-			this.applicationContext
-					.publishEvent(new DataSourceInitializedEvent(dataSource));
-		}
-	}
-
-	private DataSource findDataSource(EntityManagerFactory entityManagerFactory) {
-		Object dataSource = entityManagerFactory.getProperties()
-				.get("javax.persistence.nonJtaDataSource");
-		return (dataSource != null && dataSource instanceof DataSource
-				? (DataSource) dataSource : this.dataSource);
-	}
-
-	private boolean isInitializingDatabase(DataSource dataSource) {
+	private boolean isInitializingDatabase() {
 		if (this.properties == null) {
 			return true; // better safe than sorry
 		}
 		Map<String, String> hibernate = this.properties
-				.getHibernateProperties(dataSource);
+				.getHibernateProperties(this.dataSource);
 		if (hibernate.containsKey("hibernate.hbm2ddl.auto")) {
 			return true;
 		}
@@ -119,7 +106,6 @@ class DataSourceInitializedPublisher implements BeanPostProcessor {
 				registry.registerBeanDefinition(BEAN_NAME, beanDefinition);
 			}
 		}
-
 	}
 
 }

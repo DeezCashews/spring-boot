@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +16,20 @@
 
 package org.springframework.boot.autoconfigure.web;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
-import org.springframework.boot.autoconfigure.web.ErrorProperties.IncludeStacktrace;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.AbstractEmbeddedServletContainerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.ModelAndView;
 
 /**
@@ -42,90 +40,65 @@ import org.springframework.web.servlet.ModelAndView;
  *
  * @author Dave Syer
  * @author Phillip Webb
- * @author Michael Stummvoll
- * @author Stephane Nicoll
  * @see ErrorAttributes
- * @see ErrorProperties
  */
 @Controller
-@RequestMapping("${server.error.path:${error.path:/error}}")
-public class BasicErrorController extends AbstractErrorController {
+public class BasicErrorController implements ErrorController {
 
-	private final ErrorProperties errorProperties;
+	@Value("${error.path:/error}")
+	private String errorPath;
 
-	/**
-	 * Create a new {@link BasicErrorController} instance.
-	 * @param errorAttributes the error attributes
-	 * @param errorProperties configuration properties
-	 */
-	public BasicErrorController(ErrorAttributes errorAttributes,
-			ErrorProperties errorProperties) {
-		this(errorAttributes, errorProperties,
-				Collections.<ErrorViewResolver>emptyList());
-	}
+	private final ErrorAttributes errorAttributes;
 
-	/**
-	 * Create a new {@link BasicErrorController} instance.
-	 * @param errorAttributes the error attributes
-	 * @param errorProperties configuration properties
-	 * @param errorViewResolvers error view resolvers
-	 */
-	public BasicErrorController(ErrorAttributes errorAttributes,
-			ErrorProperties errorProperties, List<ErrorViewResolver> errorViewResolvers) {
-		super(errorAttributes, errorViewResolvers);
-		Assert.notNull(errorProperties, "ErrorProperties must not be null");
-		this.errorProperties = errorProperties;
+	public BasicErrorController(ErrorAttributes errorAttributes) {
+		Assert.notNull(errorAttributes, "ErrorAttributes must not be null");
+		this.errorAttributes = errorAttributes;
 	}
 
 	@Override
 	public String getErrorPath() {
-		return this.errorProperties.getPath();
+		return this.errorPath;
 	}
 
-	@RequestMapping(produces = "text/html")
-	public ModelAndView errorHtml(HttpServletRequest request,
-			HttpServletResponse response) {
-		HttpStatus status = getStatus(request);
-		Map<String, Object> model = Collections.unmodifiableMap(getErrorAttributes(
-				request, isIncludeStackTrace(request, MediaType.TEXT_HTML)));
-		response.setStatus(status.value());
-		ModelAndView modelAndView = resolveErrorView(request, response, status, model);
-		return (modelAndView == null ? new ModelAndView("error", model) : modelAndView);
+	@RequestMapping(value = "${error.path:/error}", produces = "text/html")
+	public ModelAndView errorHtml(HttpServletRequest request) {
+		return new ModelAndView("error", getErrorAttributes(request, false));
 	}
 
-	@RequestMapping
+	@RequestMapping(value = "${error.path:/error}")
 	@ResponseBody
 	public ResponseEntity<Map<String, Object>> error(HttpServletRequest request) {
-		Map<String, Object> body = getErrorAttributes(request,
-				isIncludeStackTrace(request, MediaType.ALL));
+		Map<String, Object> body = getErrorAttributes(request, getTraceParameter(request));
 		HttpStatus status = getStatus(request);
 		return new ResponseEntity<Map<String, Object>>(body, status);
 	}
 
-	/**
-	 * Determine if the stacktrace attribute should be included.
-	 * @param request the source request
-	 * @param produces the media type produced (or {@code MediaType.ALL})
-	 * @return if the stacktrace attribute should be included
-	 */
-	protected boolean isIncludeStackTrace(HttpServletRequest request,
-			MediaType produces) {
-		IncludeStacktrace include = getErrorProperties().getIncludeStacktrace();
-		if (include == IncludeStacktrace.ALWAYS) {
-			return true;
+	private boolean getTraceParameter(HttpServletRequest request) {
+		String parameter = request.getParameter("trace");
+		if (parameter == null) {
+			return false;
 		}
-		if (include == IncludeStacktrace.ON_TRACE_PARAM) {
-			return getTraceParameter(request);
-		}
-		return false;
+		return !"false".equals(parameter.toLowerCase());
 	}
 
-	/**
-	 * Provide access to the error properties.
-	 * @return the error properties
-	 */
-	protected ErrorProperties getErrorProperties() {
-		return this.errorProperties;
+	private Map<String, Object> getErrorAttributes(HttpServletRequest request,
+			boolean includeStackTrace) {
+		RequestAttributes requestAttributes = new ServletRequestAttributes(request);
+		return this.errorAttributes.getErrorAttributes(requestAttributes,
+				includeStackTrace);
+	}
+
+	private HttpStatus getStatus(HttpServletRequest request) {
+		Integer statusCode = (Integer) request
+				.getAttribute("javax.servlet.error.status_code");
+		if (statusCode != null) {
+			try {
+				return HttpStatus.valueOf(statusCode);
+			}
+			catch (Exception ex) {
+			}
+		}
+		return HttpStatus.INTERNAL_SERVER_ERROR;
 	}
 
 }

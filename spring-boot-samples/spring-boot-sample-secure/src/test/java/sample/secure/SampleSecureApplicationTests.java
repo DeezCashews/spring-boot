@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import sample.secure.SampleSecureApplicationTests.TestConfiguration;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -33,17 +31,20 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import sample.secure.SampleSecureApplicationTests.TestConfiguration;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Basic integration tests for demo application.
  *
  * @author Dave Syer
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest(classes = { SampleSecureApplication.class, TestConfiguration.class })
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringApplicationConfiguration(classes = { SampleSecureApplication.class,
+		TestConfiguration.class })
 public class SampleSecureApplicationTests {
 
 	@Autowired
@@ -58,8 +59,8 @@ public class SampleSecureApplicationTests {
 	public void init() {
 		AuthenticationManager authenticationManager = this.context
 				.getBean(AuthenticationManager.class);
-		this.authentication = authenticationManager.authenticate(
-				new UsernamePasswordAuthenticationToken("user", "password"));
+		this.authentication = authenticationManager
+				.authenticate(new UsernamePasswordAuthenticationToken("user", "password"));
 	}
 
 	@After
@@ -69,25 +70,25 @@ public class SampleSecureApplicationTests {
 
 	@Test(expected = AuthenticationException.class)
 	public void secure() throws Exception {
-		assertThat("Hello Security").isEqualTo(this.service.secure());
+		assertEquals(this.service.secure(), "Hello Security");
 	}
 
 	@Test
 	public void authenticated() throws Exception {
 		SecurityContextHolder.getContext().setAuthentication(this.authentication);
-		assertThat("Hello Security").isEqualTo(this.service.secure());
+		assertEquals(this.service.secure(), "Hello Security");
 	}
 
 	@Test
 	public void preauth() throws Exception {
 		SecurityContextHolder.getContext().setAuthentication(this.authentication);
-		assertThat("Hello World").isEqualTo(this.service.authorized());
+		assertEquals(this.service.authorized(), "Hello World");
 	}
 
 	@Test(expected = AccessDeniedException.class)
 	public void denied() throws Exception {
 		SecurityContextHolder.getContext().setAuthentication(this.authentication);
-		assertThat("Goodbye World").isEqualTo(this.service.denied());
+		assertEquals(this.service.denied(), "Goodbye World");
 	}
 
 	@PropertySource("classpath:test.properties")

@@ -18,3 +18,4 @@
  * Auto-configuration for Spring WebSocket.
  */
 package org.springframework.boot.autoconfigure.websocket;
+

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,14 @@
 
 package org.springframework.boot.autoconfigure.jms.activemq;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 /**
- * Tests for {@link ActiveMQProperties} and {@link ActiveMQConnectionFactoryFactory}.
+ * Tests for {@link ActiveMQProperties} and ActiveMQConnectionFactoryFactory.
  *
  * @author Stephane Nicoll
- * @author Aurélien Leboulanger
- * @author Venil Noronha
  */
 public class ActiveMQPropertiesTests {
 
@@ -38,49 +35,32 @@ public class ActiveMQPropertiesTests {
 
 	@Test
 	public void getBrokerUrlIsInMemoryByDefault() {
-		assertThat(new ActiveMQConnectionFactoryFactory(this.properties)
-				.determineBrokerUrl()).isEqualTo(DEFAULT_EMBEDDED_BROKER_URL);
+		assertEquals(DEFAULT_EMBEDDED_BROKER_URL, new ActiveMQConnectionFactoryFactory(
+				this.properties).determineBrokerUrl());
 	}
 
 	@Test
 	public void getBrokerUrlUseExplicitBrokerUrl() {
 		this.properties.setBrokerUrl("vm://foo-bar");
-		assertThat(new ActiveMQConnectionFactoryFactory(this.properties)
-				.determineBrokerUrl()).isEqualTo("vm://foo-bar");
+		assertEquals("vm://foo-bar",
+				new ActiveMQConnectionFactoryFactory(this.properties)
+						.determineBrokerUrl());
 	}
 
 	@Test
 	public void getBrokerUrlWithInMemorySetToFalse() {
 		this.properties.setInMemory(false);
-		assertThat(new ActiveMQConnectionFactoryFactory(this.properties)
-				.determineBrokerUrl()).isEqualTo(DEFAULT_NETWORK_BROKER_URL);
+		assertEquals(DEFAULT_NETWORK_BROKER_URL, new ActiveMQConnectionFactoryFactory(
+				this.properties).determineBrokerUrl());
 	}
 
 	@Test
 	public void getExplicitBrokerUrlAlwaysWins() {
 		this.properties.setBrokerUrl("vm://foo-bar");
 		this.properties.setInMemory(false);
-		assertThat(new ActiveMQConnectionFactoryFactory(this.properties)
-				.determineBrokerUrl()).isEqualTo("vm://foo-bar");
-	}
-
-	@Test
-	public void setTrustAllPackages() {
-		this.properties.getPackages().setTrustAll(true);
-		assertThat(new ActiveMQConnectionFactoryFactory(this.properties)
-				.createConnectionFactory(ActiveMQConnectionFactory.class)
-				.isTrustAllPackages()).isEqualTo(true);
-	}
-
-	@Test
-	public void setTrustedPackages() {
-		this.properties.getPackages().setTrustAll(false);
-		this.properties.getPackages().getTrusted().add("trusted.package");
-		ActiveMQConnectionFactory factory = new ActiveMQConnectionFactoryFactory(
-				this.properties).createConnectionFactory(ActiveMQConnectionFactory.class);
-		assertThat(factory.isTrustAllPackages()).isEqualTo(false);
-		assertThat(factory.getTrustedPackages().size()).isEqualTo(1);
-		assertThat(factory.getTrustedPackages().get(0)).isEqualTo("trusted.package");
+		assertEquals("vm://foo-bar",
+				new ActiveMQConnectionFactoryFactory(this.properties)
+						.determineBrokerUrl());
 	}
 
 }

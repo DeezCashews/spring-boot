@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ public interface ErrorAttributes {
 	 * @param includeStackTrace if stack trace elements should be included
 	 * @return a map of error attributes
 	 */
-	Map<String, Object> getErrorAttributes(RequestAttributes requestAttributes,
+	public Map<String, Object> getErrorAttributes(RequestAttributes requestAttributes,
 			boolean includeStackTrace);
 
 	/**
@@ -47,6 +47,6 @@ public interface ErrorAttributes {
 	 * @param requestAttributes the source request attributes
 	 * @return the {@link Exception} that caused the error or {@code null}
 	 */
-	Throwable getError(RequestAttributes requestAttributes);
+	public Throwable getError(RequestAttributes requestAttributes);
 
 }

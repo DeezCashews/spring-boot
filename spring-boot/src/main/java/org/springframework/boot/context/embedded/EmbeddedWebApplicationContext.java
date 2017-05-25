@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,14 +32,9 @@ import javax.servlet.ServletException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.Scope;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.boot.web.servlet.ServletContextInitializer;
-import org.springframework.boot.web.servlet.ServletContextInitializerBeans;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.core.io.Resource;
@@ -97,9 +92,9 @@ public class EmbeddedWebApplicationContext extends GenericWebApplicationContext 
 	 * default. To change the default behaviour you can use a
 	 * {@link ServletRegistrationBean} or a different bean name.
 	 */
-	public static final String DISPATCHER_SERVLET_NAME = "dispatcherServlet";
+	public static final String DISPATCHER_SERVLET_NAME = ServletContextInitializerBeans.DISPATCHER_SERVLET_NAME;
 
-	private volatile EmbeddedServletContainer embeddedServletContainer;
+	private EmbeddedServletContainer embeddedServletContainer;
 
 	private ServletConfig servletConfig;
 
@@ -111,8 +106,9 @@ public class EmbeddedWebApplicationContext extends GenericWebApplicationContext 
 	 */
 	@Override
 	protected void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-		beanFactory.addBeanPostProcessor(
-				new WebApplicationContextServletContextAwareProcessor(this));
+		beanFactory
+				.addBeanPostProcessor(new WebApplicationContextServletContextAwareProcessor(
+						this));
 		beanFactory.ignoreDependencyInterface(ServletContextAware.class);
 	}
 
@@ -142,34 +138,32 @@ public class EmbeddedWebApplicationContext extends GenericWebApplicationContext 
 	@Override
 	protected void finishRefresh() {
 		super.finishRefresh();
-		EmbeddedServletContainer localContainer = startEmbeddedServletContainer();
-		if (localContainer != null) {
-			publishEvent(
-					new EmbeddedServletContainerInitializedEvent(this, localContainer));
+		startEmbeddedServletContainer();
+		if (this.embeddedServletContainer != null) {
+			publishEvent(new EmbeddedServletContainerInitializedEvent(this,
+					this.embeddedServletContainer));
 		}
 	}
 
 	@Override
-	protected void onClose() {
-		super.onClose();
+	protected void doClose() {
+		super.doClose();
 		stopAndReleaseEmbeddedServletContainer();
 	}
 
-	private void createEmbeddedServletContainer() {
-		EmbeddedServletContainer localContainer = this.embeddedServletContainer;
-		ServletContext localServletContext = getServletContext();
-		if (localContainer == null && localServletContext == null) {
+	private synchronized void createEmbeddedServletContainer() {
+		if (this.embeddedServletContainer == null && getServletContext() == null) {
 			EmbeddedServletContainerFactory containerFactory = getEmbeddedServletContainerFactory();
 			this.embeddedServletContainer = containerFactory
 					.getEmbeddedServletContainer(getSelfInitializer());
 		}
-		else if (localServletContext != null) {
+		else if (getServletContext() != null) {
 			try {
-				getSelfInitializer().onStartup(localServletContext);
+				getSelfInitializer().onStartup(getServletContext());
 			}
 			catch (ServletException ex) {
-				throw new ApplicationContextException("Cannot initialize servlet context",
-						ex);
+				throw new ApplicationContextException(
+						"Cannot initialize servlet context", ex);
 			}
 		}
 		initPropertySources();
@@ -183,8 +177,8 @@ public class EmbeddedWebApplicationContext extends GenericWebApplicationContext 
 	 */
 	protected EmbeddedServletContainerFactory getEmbeddedServletContainerFactory() {
 		// Use bean names so that we don't consider the hierarchy
-		String[] beanNames = getBeanFactory()
-				.getBeanNamesForType(EmbeddedServletContainerFactory.class);
+		String[] beanNames = getBeanFactory().getBeanNamesForType(
+				EmbeddedServletContainerFactory.class);
 		if (beanNames.length == 0) {
 			throw new ApplicationContextException(
 					"Unable to start EmbeddedWebApplicationContext due to missing "
@@ -203,10 +197,9 @@ public class EmbeddedWebApplicationContext extends GenericWebApplicationContext 
 	/**
 	 * Returns the {@link ServletContextInitializer} that will be used to complete the
 	 * setup of this {@link WebApplicationContext}.
-	 * @return the self initializer
 	 * @see #prepareEmbeddedWebApplicationContext(ServletContext)
 	 */
-	private org.springframework.boot.web.servlet.ServletContextInitializer getSelfInitializer() {
+	private ServletContextInitializer getSelfInitializer() {
 		return new ServletContextInitializer() {
 			@Override
 			public void onStartup(ServletContext servletContext) throws ServletException {
@@ -249,8 +242,8 @@ public class EmbeddedWebApplicationContext extends GenericWebApplicationContext 
 	 * @param servletContext the operational servlet context
 	 */
 	protected void prepareEmbeddedWebApplicationContext(ServletContext servletContext) {
-		Object rootContext = servletContext.getAttribute(
-				WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+		Object rootContext = servletContext
+				.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 		if (rootContext != null) {
 			if (rootContext == this) {
 				throw new IllegalStateException(
@@ -265,10 +258,9 @@ public class EmbeddedWebApplicationContext extends GenericWebApplicationContext 
 			servletContext.setAttribute(
 					WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, this);
 			if (logger.isDebugEnabled()) {
-				logger.debug(
-						"Published root WebApplicationContext as ServletContext attribute with name ["
-								+ WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE
-								+ "]");
+				logger.debug("Published root WebApplicationContext as ServletContext attribute with name ["
+						+ WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE
+						+ "]");
 			}
 			setServletContext(servletContext);
 			if (logger.isInfoEnabled()) {
@@ -291,19 +283,16 @@ public class EmbeddedWebApplicationContext extends GenericWebApplicationContext 
 		}
 	}
 
-	private EmbeddedServletContainer startEmbeddedServletContainer() {
-		EmbeddedServletContainer localContainer = this.embeddedServletContainer;
-		if (localContainer != null) {
-			localContainer.start();
+	private void startEmbeddedServletContainer() {
+		if (this.embeddedServletContainer != null) {
+			this.embeddedServletContainer.start();
 		}
-		return localContainer;
 	}
 
-	private void stopAndReleaseEmbeddedServletContainer() {
-		EmbeddedServletContainer localContainer = this.embeddedServletContainer;
-		if (localContainer != null) {
+	private synchronized void stopAndReleaseEmbeddedServletContainer() {
+		if (this.embeddedServletContainer != null) {
 			try {
-				localContainer.stop();
+				this.embeddedServletContainer.stop();
 				this.embeddedServletContainer = null;
 			}
 			catch (Exception ex) {
@@ -357,7 +346,6 @@ public class EmbeddedWebApplicationContext extends GenericWebApplicationContext 
 	public static class ExistingWebApplicationScopes {
 
 		private static final Set<String> SCOPES;
-
 		static {
 			Set<String> scopes = new LinkedHashSet<String>();
 			scopes.add(WebApplicationContext.SCOPE_REQUEST);

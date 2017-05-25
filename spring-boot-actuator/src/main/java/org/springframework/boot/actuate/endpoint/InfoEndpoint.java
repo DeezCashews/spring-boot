@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,10 @@
 
 package org.springframework.boot.actuate.endpoint;
 
-import java.util.List;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.springframework.boot.actuate.info.Info;
-import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.Assert;
 
@@ -28,32 +27,32 @@ import org.springframework.util.Assert;
  * {@link Endpoint} to expose arbitrary application information.
  *
  * @author Dave Syer
- * @author Meang Akira Tanaka
- * @author Stephane Nicoll
  */
-@ConfigurationProperties(prefix = "endpoints.info")
+@ConfigurationProperties(prefix = "endpoints.info", ignoreUnknownFields = false)
 public class InfoEndpoint extends AbstractEndpoint<Map<String, Object>> {
 
-	private final List<InfoContributor> infoContributors;
+	private final Map<String, ? extends Object> info;
 
 	/**
 	 * Create a new {@link InfoEndpoint} instance.
-	 * @param infoContributors the info contributors to use
+	 *
+	 * @param info the info to expose
 	 */
-	public InfoEndpoint(List<InfoContributor> infoContributors) {
+	public InfoEndpoint(Map<String, ? extends Object> info) {
 		super("info", false);
-		Assert.notNull(infoContributors, "Info contributors must not be null");
-		this.infoContributors = infoContributors;
+		Assert.notNull(info, "Info must not be null");
+		this.info = info;
 	}
 
 	@Override
 	public Map<String, Object> invoke() {
-		Info.Builder builder = new Info.Builder();
-		for (InfoContributor contributor : this.infoContributors) {
-			contributor.contribute(builder);
-		}
-		Info build = builder.build();
-		return build.getDetails();
+		Map<String, Object> info = new LinkedHashMap<String, Object>(this.info);
+		info.putAll(getAdditionalInfo());
+		return info;
+	}
+
+	protected Map<String, Object> getAdditionalInfo() {
+		return Collections.emptyMap();
 	}
 
 }

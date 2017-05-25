@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.springframework.boot.autoconfigure.social;
 
 import org.junit.After;
-
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.social.UserIdSource;
 import org.springframework.social.connect.ConnectionFactoryLocator;
@@ -25,7 +24,7 @@ import org.springframework.social.connect.ConnectionRepository;
 import org.springframework.social.connect.UsersConnectionRepository;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -33,7 +32,7 @@ import static org.junit.Assert.fail;
  *
  * @author Craig Walls
  */
-public abstract class AbstractSocialAutoConfigurationTests {
+public class AbstractSocialAutoConfigurationTests {
 
 	protected AnnotationConfigWebApplicationContext context;
 
@@ -49,10 +48,10 @@ public abstract class AbstractSocialAutoConfigurationTests {
 	}
 
 	protected void assertConnectionFrameworkBeans() {
-		assertThat(this.context.getBean(UsersConnectionRepository.class)).isNotNull();
-		assertThat(this.context.getBean(ConnectionRepository.class)).isNotNull();
-		assertThat(this.context.getBean(ConnectionFactoryLocator.class)).isNotNull();
-		assertThat(this.context.getBean(UserIdSource.class)).isNotNull();
+		assertNotNull(this.context.getBean(UsersConnectionRepository.class));
+		assertNotNull(this.context.getBean(ConnectionRepository.class));
+		assertNotNull(this.context.getBean(ConnectionFactoryLocator.class));
+		assertNotNull(this.context.getBean(UserIdSource.class));
 	}
 
 	protected void assertNoConnectionFrameworkBeans() {
@@ -64,11 +63,10 @@ public abstract class AbstractSocialAutoConfigurationTests {
 
 	protected void assertMissingBean(Class<?> beanClass) {
 		try {
-			assertThat(this.context.getBean(beanClass)).isNotNull();
+			assertNotNull(this.context.getBean(beanClass));
 			fail("Unexpected bean in context of type " + beanClass.getName());
 		}
 		catch (NoSuchBeanDefinitionException ex) {
-			// Expected
 		}
 	}
 

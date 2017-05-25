@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,28 +46,35 @@ public class TomcatEmbeddedWebappClassLoader extends WebappClassLoader {
 	@Override
 	public synchronized Class<?> loadClass(String name, boolean resolve)
 			throws ClassNotFoundException {
-		Class<?> result = findExistingLoadedClass(name);
-		result = (result == null ? doLoadClass(name) : result);
-		if (result == null) {
+		Class<?> resultClass = null;
+
+		// Check local class caches
+		resultClass = (resultClass == null ? findLoadedClass0(name) : resultClass);
+		resultClass = (resultClass == null ? findLoadedClass(name) : resultClass);
+		if (resultClass != null) {
+			return resolveIfNecessary(resultClass, resolve);
+		}
+
+		// Check security
+		checkPackageAccess(name);
+
+		// Perform the actual load
+		boolean delegateLoad = (this.delegate || filter(name));
+
+		if (delegateLoad) {
+			resultClass = (resultClass == null ? loadFromParent(name) : resultClass);
+		}
+		resultClass = (resultClass == null ? findClassIgnoringNotFound(name)
+				: resultClass);
+		if (!delegateLoad) {
+			resultClass = (resultClass == null ? loadFromParent(name) : resultClass);
+		}
+
+		if (resultClass == null) {
 			throw new ClassNotFoundException(name);
 		}
-		return resolveIfNecessary(result, resolve);
-	}
 
-	private Class<?> findExistingLoadedClass(String name) {
-		Class<?> resultClass = findLoadedClass0(name);
-		resultClass = (resultClass == null ? findLoadedClass(name) : resultClass);
-		return resultClass;
-	}
-
-	private Class<?> doLoadClass(String name) throws ClassNotFoundException {
-		checkPackageAccess(name);
-		if ((this.delegate || filter(name, true))) {
-			Class<?> result = loadFromParent(name);
-			return (result == null ? findClassIgnoringNotFound(name) : result);
-		}
-		Class<?> result = findClassIgnoringNotFound(name);
-		return (result == null ? loadFromParent(name) : result);
+		return resolveIfNecessary(resultClass, resolve);
 	}
 
 	private Class<?> resolveIfNecessary(Class<?> resultClass, boolean resolve) {
@@ -109,8 +116,8 @@ public class TomcatEmbeddedWebappClassLoader extends WebappClassLoader {
 	private void checkPackageAccess(String name) throws ClassNotFoundException {
 		if (this.securityManager != null && name.lastIndexOf('.') >= 0) {
 			try {
-				this.securityManager
-						.checkPackageAccess(name.substring(0, name.lastIndexOf('.')));
+				this.securityManager.checkPackageAccess(name.substring(0,
+						name.lastIndexOf('.')));
 			}
 			catch (SecurityException ex) {
 				throw new ClassNotFoundException("Security Violation, attempt to use "

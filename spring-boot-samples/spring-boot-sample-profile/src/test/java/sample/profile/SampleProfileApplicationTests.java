@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.boot.test.OutputCapture;
 
-import org.springframework.boot.test.rule.OutputCapture;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class SampleProfileApplicationTests {
 
@@ -51,7 +50,7 @@ public class SampleProfileApplicationTests {
 	public void testDefaultProfile() throws Exception {
 		SampleProfileApplication.main(new String[0]);
 		String output = this.outputCapture.toString();
-		assertThat(output).contains("Hello Phil");
+		assertTrue("Wrong output: " + output, output.contains("Hello Phil"));
 	}
 
 	@Test
@@ -59,7 +58,7 @@ public class SampleProfileApplicationTests {
 		System.setProperty("spring.profiles.active", "goodbye");
 		SampleProfileApplication.main(new String[0]);
 		String output = this.outputCapture.toString();
-		assertThat(output).contains("Goodbye Everyone");
+		assertTrue("Wrong output: " + output, output.contains("Goodbye Everyone"));
 	}
 
 	@Test
@@ -73,7 +72,7 @@ public class SampleProfileApplicationTests {
 		System.setProperty("spring.profiles.active", "generic");
 		SampleProfileApplication.main(new String[0]);
 		String output = this.outputCapture.toString();
-		assertThat(output).contains("Bonjour Phil");
+		assertTrue("Wrong output: " + output, output.contains("Bonjour Phil"));
 	}
 
 	@Test
@@ -81,7 +80,7 @@ public class SampleProfileApplicationTests {
 		SampleProfileApplication
 				.main(new String[] { "--spring.profiles.active=goodbye" });
 		String output = this.outputCapture.toString();
-		assertThat(output).contains("Goodbye Everyone");
+		assertTrue("Wrong output: " + output, output.contains("Goodbye Everyone"));
 	}
 
 }

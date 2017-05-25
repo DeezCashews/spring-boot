@@ -1,23 +1,6 @@
 welcome = { ->
-
-	def environment = crash.context.attributes['spring.environment']
-	def propertyResolver = new org.springframework.boot.bind.RelaxedPropertyResolver(environment, "spring.main.");
-	def beanFactory = crash.context.attributes['spring.beanfactory']
-
-	if (!propertyResolver.getProperty("show-banner", Boolean.class, Boolean.TRUE)) {
+	if (!crash.context.attributes['spring.environment'].getProperty("spring.main.show_banner", Boolean.class, Boolean.TRUE)) {
 		return ""
-	}
-
-	// Try to print using the banner interface
-	if (beanFactory != null) {
-		try {
-			def banner = beanFactory.getBean("springBootBanner")
-			def out = new java.io.ByteArrayOutputStream()
-			banner.printBanner(environment, null, new java.io.PrintStream(out))
-			return out.toString()
-		} catch (Exception ex) {
-			// Ignore
-		}
 	}
 
 	// Resolve hostname

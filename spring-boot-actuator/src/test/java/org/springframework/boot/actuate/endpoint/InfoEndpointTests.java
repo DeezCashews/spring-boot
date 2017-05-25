@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,21 @@
 
 package org.springframework.boot.actuate.endpoint;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Collections;
 
 import org.junit.Test;
-
-import org.springframework.boot.actuate.info.Info;
-import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests for {@link InfoEndpoint}.
  *
  * @author Phillip Webb
  * @author Dave Syer
- * @author Meang Akira Tanaka
  */
 public class InfoEndpointTests extends AbstractEndpointTests<InfoEndpoint> {
 
@@ -44,8 +40,7 @@ public class InfoEndpointTests extends AbstractEndpointTests<InfoEndpoint> {
 
 	@Test
 	public void invoke() throws Exception {
-		Map<String, Object> actual = getEndpointBean().invoke();
-		assertThat(actual.get("key1")).isEqualTo("value1");
+		assertThat(getEndpointBean().invoke().get("a"), equalTo((Object) "b"));
 	}
 
 	@Configuration
@@ -53,22 +48,9 @@ public class InfoEndpointTests extends AbstractEndpointTests<InfoEndpoint> {
 	public static class Config {
 
 		@Bean
-		public InfoContributor infoContributor() {
-			return new InfoContributor() {
-
-				@Override
-				public void contribute(Info.Builder builder) {
-					builder.withDetail("key1", "value1");
-				}
-
-			};
-		}
-
-		@Bean
-		public InfoEndpoint endpoint(List<InfoContributor> infoContributors) {
-			return new InfoEndpoint(infoContributors);
+		public InfoEndpoint endpoint() {
+			return new InfoEndpoint(Collections.singletonMap("a", "b"));
 		}
 
 	}
-
 }

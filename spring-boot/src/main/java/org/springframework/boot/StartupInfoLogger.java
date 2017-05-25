@@ -21,7 +21,6 @@ import java.net.InetAddress;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
@@ -38,7 +37,7 @@ class StartupInfoLogger {
 
 	private final Class<?> sourceClass;
 
-	StartupInfoLogger(Class<?> sourceClass) {
+	public StartupInfoLogger(Class<?> sourceClass) {
 		this.sourceClass = sourceClass;
 	}
 
@@ -140,8 +139,7 @@ class StartupInfoLogger {
 			}
 		});
 		ApplicationHome home = new ApplicationHome(this.sourceClass);
-		String path = (home.getSource() == null ? ""
-				: home.getSource().getAbsolutePath());
+		String path = (home.getSource() == null ? "" : home.getSource().getAbsolutePath());
 		if (startedBy == null && path == null) {
 			return "";
 		}

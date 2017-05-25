@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,18 @@
 package org.springframework.boot.autoconfigure.jms;
 
 import javax.jms.ConnectionFactory;
-import javax.jms.Message;
 
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.support.converter.MessageConverter;
 import org.springframework.jms.support.destination.DestinationResolver;
 
 /**
@@ -41,76 +38,37 @@ import org.springframework.jms.support.destination.DestinationResolver;
  * @author Stephane Nicoll
  */
 @Configuration
-@ConditionalOnClass({ Message.class, JmsTemplate.class })
+@ConditionalOnClass(JmsTemplate.class)
 @ConditionalOnBean(ConnectionFactory.class)
 @EnableConfigurationProperties(JmsProperties.class)
 @Import(JmsAnnotationDrivenConfiguration.class)
 public class JmsAutoConfiguration {
 
-	@Configuration
-	protected static class JmsTemplateConfiguration {
+	@Autowired
+	private JmsProperties properties;
 
-		private final JmsProperties properties;
+	@Autowired
+	private ConnectionFactory connectionFactory;
 
-		private final ObjectProvider<DestinationResolver> destinationResolver;
+	@Autowired(required = false)
+	private DestinationResolver destinationResolver;
 
-		private final ObjectProvider<MessageConverter> messageConverter;
-
-		public JmsTemplateConfiguration(JmsProperties properties,
-				ObjectProvider<DestinationResolver> destinationResolver,
-				ObjectProvider<MessageConverter> messageConverter) {
-			this.properties = properties;
-			this.destinationResolver = destinationResolver;
-			this.messageConverter = messageConverter;
+	@Bean
+	@ConditionalOnMissingBean
+	public JmsTemplate jmsTemplate() {
+		JmsTemplate jmsTemplate = new JmsTemplate(this.connectionFactory);
+		jmsTemplate.setPubSubDomain(this.properties.isPubSubDomain());
+		if (this.destinationResolver != null) {
+			jmsTemplate.setDestinationResolver(this.destinationResolver);
 		}
-
-		@Bean
-		@ConditionalOnMissingBean
-		@ConditionalOnSingleCandidate(ConnectionFactory.class)
-		public JmsTemplate jmsTemplate(ConnectionFactory connectionFactory) {
-			JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
-			jmsTemplate.setPubSubDomain(this.properties.isPubSubDomain());
-			DestinationResolver destinationResolver = this.destinationResolver
-					.getIfUnique();
-			if (destinationResolver != null) {
-				jmsTemplate.setDestinationResolver(destinationResolver);
-			}
-			MessageConverter messageConverter = this.messageConverter.getIfUnique();
-			if (messageConverter != null) {
-				jmsTemplate.setMessageConverter(messageConverter);
-			}
-			JmsProperties.Template template = this.properties.getTemplate();
-			if (template.getDefaultDestination() != null) {
-				jmsTemplate.setDefaultDestinationName(template.getDefaultDestination());
-			}
-			if (template.getDeliveryDelay() != null) {
-				jmsTemplate.setDeliveryDelay(template.getDeliveryDelay());
-			}
-			jmsTemplate.setExplicitQosEnabled(template.determineQosEnabled());
-			if (template.getDeliveryMode() != null) {
-				jmsTemplate.setDeliveryMode(template.getDeliveryMode().getValue());
-			}
-			if (template.getPriority() != null) {
-				jmsTemplate.setPriority(template.getPriority());
-			}
-			if (template.getTimeToLive() != null) {
-				jmsTemplate.setTimeToLive(template.getTimeToLive());
-			}
-			if (template.getReceiveTimeout() != null) {
-				jmsTemplate.setReceiveTimeout(template.getReceiveTimeout());
-			}
-			return jmsTemplate;
-		}
-
+		return jmsTemplate;
 	}
 
 	@ConditionalOnClass(JmsMessagingTemplate.class)
-	@Import(JmsTemplateConfiguration.class)
+	@ConditionalOnMissingBean(JmsMessagingTemplate.class)
 	protected static class MessagingTemplateConfiguration {
 
 		@Bean
-		@ConditionalOnMissingBean
-		@ConditionalOnSingleCandidate(JmsTemplate.class)
 		public JmsMessagingTemplate jmsMessagingTemplate(JmsTemplate jmsTemplate) {
 			return new JmsMessagingTemplate(jmsTemplate);
 		}

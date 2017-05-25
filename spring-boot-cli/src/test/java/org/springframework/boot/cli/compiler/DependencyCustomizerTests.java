@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@
 
 package org.springframework.boot.cli.compiler;
 
-import java.util.List;
-
 import groovy.lang.Grab;
 import groovy.lang.GroovyClassLoader;
+
+import java.util.List;
+
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.ModuleNode;
@@ -29,11 +30,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
 import org.springframework.boot.cli.compiler.dependencies.ArtifactCoordinatesResolver;
 import org.springframework.boot.cli.compiler.grape.DependencyResolutionContext;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.BDDMockito.given;
 
 /**
@@ -55,21 +56,16 @@ public class DependencyCustomizerTests {
 	@Before
 	public void setUp() {
 		MockitoAnnotations.initMocks(this);
-		given(this.resolver.getGroupId("spring-boot-starter-logging"))
-				.willReturn("org.springframework.boot");
-		given(this.resolver.getArtifactId("spring-boot-starter-logging"))
-				.willReturn("spring-boot-starter-logging");
+		given(this.resolver.getGroupId("spring-boot-starter-logging")).willReturn(
+				"org.springframework.boot");
+		given(this.resolver.getArtifactId("spring-boot-starter-logging")).willReturn(
+				"spring-boot-starter-logging");
+		given(this.resolver.getVersion("spring-boot-starter-logging"))
+				.willReturn("1.2.3");
 		this.moduleNode.addClass(this.classNode);
-		this.dependencyCustomizer = new DependencyCustomizer(
-				new GroovyClassLoader(getClass().getClassLoader()), this.moduleNode,
-				new DependencyResolutionContext() {
-
-					@Override
-					public ArtifactCoordinatesResolver getArtifactCoordinatesResolver() {
-						return DependencyCustomizerTests.this.resolver;
-					}
-
-				});
+		this.dependencyCustomizer = new DependencyCustomizer(new GroovyClassLoader(
+				getClass().getClassLoader()), this.moduleNode,
+				new DependencyResolutionContext(this.resolver));
 	}
 
 	@Test
@@ -77,7 +73,7 @@ public class DependencyCustomizerTests {
 		this.dependencyCustomizer.add("spring-boot-starter-logging");
 		List<AnnotationNode> grabAnnotations = this.classNode
 				.getAnnotations(new ClassNode(Grab.class));
-		assertThat(grabAnnotations).hasSize(1);
+		assertEquals(1, grabAnnotations.size());
 		AnnotationNode annotationNode = grabAnnotations.get(0);
 		assertGrabAnnotation(annotationNode, "org.springframework.boot",
 				"spring-boot-starter-logging", "1.2.3", null, null, true);
@@ -88,7 +84,7 @@ public class DependencyCustomizerTests {
 		this.dependencyCustomizer.add("spring-boot-starter-logging", false);
 		List<AnnotationNode> grabAnnotations = this.classNode
 				.getAnnotations(new ClassNode(Grab.class));
-		assertThat(grabAnnotations).hasSize(1);
+		assertEquals(1, grabAnnotations.size());
 		AnnotationNode annotationNode = grabAnnotations.get(0);
 		assertGrabAnnotation(annotationNode, "org.springframework.boot",
 				"spring-boot-starter-logging", "1.2.3", null, null, false);
@@ -100,77 +96,73 @@ public class DependencyCustomizerTests {
 				"my-type", false);
 		List<AnnotationNode> grabAnnotations = this.classNode
 				.getAnnotations(new ClassNode(Grab.class));
-		assertThat(grabAnnotations).hasSize(1);
+		assertEquals(1, grabAnnotations.size());
 		AnnotationNode annotationNode = grabAnnotations.get(0);
 		assertGrabAnnotation(annotationNode, "org.springframework.boot",
-				"spring-boot-starter-logging", "1.2.3", "my-classifier", "my-type",
-				false);
+				"spring-boot-starter-logging", "1.2.3", "my-classifier", "my-type", false);
 	}
 
 	@Test
 	public void anyMissingClassesWithMissingClassesPerformsAdd() {
-		this.dependencyCustomizer.ifAnyMissingClasses("does.not.Exist")
-				.add("spring-boot-starter-logging");
-		assertThat(this.classNode.getAnnotations(new ClassNode(Grab.class))).hasSize(1);
+		this.dependencyCustomizer.ifAnyMissingClasses("does.not.Exist").add(
+				"spring-boot-starter-logging");
+		assertEquals(1, this.classNode.getAnnotations(new ClassNode(Grab.class)).size());
 	}
 
 	@Test
 	public void anyMissingClassesWithMixtureOfClassesPerformsAdd() {
-		this.dependencyCustomizer
-				.ifAnyMissingClasses(getClass().getName(), "does.not.Exist")
-				.add("spring-boot-starter-logging");
-		assertThat(this.classNode.getAnnotations(new ClassNode(Grab.class))).hasSize(1);
+		this.dependencyCustomizer.ifAnyMissingClasses(getClass().getName(),
+				"does.not.Exist").add("spring-boot-starter-logging");
+		assertEquals(1, this.classNode.getAnnotations(new ClassNode(Grab.class)).size());
 	}
 
 	@Test
 	public void anyMissingClassesWithNoMissingClassesDoesNotPerformAdd() {
-		this.dependencyCustomizer.ifAnyMissingClasses(getClass().getName())
-				.add("spring-boot-starter-logging");
-		assertThat(this.classNode.getAnnotations(new ClassNode(Grab.class))).isEmpty();
+		this.dependencyCustomizer.ifAnyMissingClasses(getClass().getName()).add(
+				"spring-boot-starter-logging");
+		assertEquals(0, this.classNode.getAnnotations(new ClassNode(Grab.class)).size());
 	}
 
 	@Test
 	public void allMissingClassesWithNoMissingClassesDoesNotPerformAdd() {
-		this.dependencyCustomizer.ifAllMissingClasses(getClass().getName())
-				.add("spring-boot-starter-logging");
-		assertThat(this.classNode.getAnnotations(new ClassNode(Grab.class))).isEmpty();
+		this.dependencyCustomizer.ifAllMissingClasses(getClass().getName()).add(
+				"spring-boot-starter-logging");
+		assertEquals(0, this.classNode.getAnnotations(new ClassNode(Grab.class)).size());
 	}
 
 	@Test
 	public void allMissingClassesWithMixtureOfClassesDoesNotPerformAdd() {
-		this.dependencyCustomizer
-				.ifAllMissingClasses(getClass().getName(), "does.not.Exist")
-				.add("spring-boot-starter-logging");
-		assertThat(this.classNode.getAnnotations(new ClassNode(Grab.class))).isEmpty();
+		this.dependencyCustomizer.ifAllMissingClasses(getClass().getName(),
+				"does.not.Exist").add("spring-boot-starter-logging");
+		assertEquals(0, this.classNode.getAnnotations(new ClassNode(Grab.class)).size());
 	}
 
 	@Test
 	public void allMissingClassesWithAllClassesMissingPerformsAdd() {
-		this.dependencyCustomizer
-				.ifAllMissingClasses("does.not.Exist", "does.not.exist.Either")
-				.add("spring-boot-starter-logging");
-		assertThat(this.classNode.getAnnotations(new ClassNode(Grab.class))).hasSize(1);
+		this.dependencyCustomizer.ifAllMissingClasses("does.not.Exist",
+				"does.not.exist.Either").add("spring-boot-starter-logging");
+		assertEquals(1, this.classNode.getAnnotations(new ClassNode(Grab.class)).size());
 	}
 
 	private void assertGrabAnnotation(AnnotationNode annotationNode, String group,
 			String module, String version, String classifier, String type,
 			boolean transitive) {
-		assertThat(getMemberValue(annotationNode, "group")).isEqualTo(group);
-		assertThat(getMemberValue(annotationNode, "module")).isEqualTo(module);
+		assertEquals(group, getMemberValue(annotationNode, "group"));
+		assertEquals(module, getMemberValue(annotationNode, "module"));
+		assertEquals(version, getMemberValue(annotationNode, "version"));
 		if (type == null) {
-			assertThat(annotationNode.getMember("type")).isNull();
+			assertNull(annotationNode.getMember("type"));
 		}
 		else {
-			assertThat(getMemberValue(annotationNode, "type")).isEqualTo(type);
+			assertEquals(type, getMemberValue(annotationNode, "type"));
 		}
 		if (classifier == null) {
-			assertThat(annotationNode.getMember("classifier")).isNull();
+			assertNull(annotationNode.getMember("classifier"));
 		}
 		else {
-			assertThat(getMemberValue(annotationNode, "classifier"))
-					.isEqualTo(classifier);
+			assertEquals(classifier, getMemberValue(annotationNode, "classifier"));
 		}
-		assertThat(getMemberValue(annotationNode, "transitive")).isEqualTo(transitive);
+		assertEquals(transitive, getMemberValue(annotationNode, "transitive"));
 	}
 
 	private Object getMemberValue(AnnotationNode annotationNode, String member) {

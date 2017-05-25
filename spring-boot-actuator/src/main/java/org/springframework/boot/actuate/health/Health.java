@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.springframework.util.Assert;
+
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-
-import org.springframework.util.Assert;
 
 /**
  * Carries information about the health of a component or subsystem.
@@ -39,7 +39,7 @@ import org.springframework.util.Assert;
  * <pre class="code">
  * try {
  * 	// do some test to determine state of component
- * 	return new Health.Builder().up().withDetail("version", "1.1.2").build();
+ * 	return new Health.Builder().up().withDetail(&quot;version&quot;, &quot;1.1.2&quot;).build();
  * }
  * catch (Exception ex) {
  * 	return new Health.Builder().down(ex).build();
@@ -68,8 +68,7 @@ public final class Health {
 	}
 
 	/**
-	 * Return the status of the health.
-	 * @return the status (never {@code null})
+	 * @return the status of the health (never {@code null})
 	 */
 	@JsonUnwrapped
 	public Status getStatus() {
@@ -77,8 +76,7 @@ public final class Health {
 	}
 
 	/**
-	 * Return the details of the health.
-	 * @return the details (or an empty map)
+	 * @return the details of the health or an empty map.
 	 */
 	@JsonAnyGetter
 	public Map<String, Object> getDetails() {
@@ -186,7 +184,7 @@ public final class Health {
 		}
 
 		/**
-		 * Create new Builder instance, setting status to given {@code status}.
+		 * Create new Builder instance, setting status to given <code>status</code>.
 		 * @param status the {@link Status} to use
 		 */
 		public Builder(Status status) {
@@ -196,8 +194,8 @@ public final class Health {
 		}
 
 		/**
-		 * Create new Builder instance, setting status to given {@code status} and details
-		 * to given {@code details}.
+		 * Create new Builder instance, setting status to given <code>status</code> and
+		 * details to given <code>details</code>.
 		 * @param status the {@link Status} to use
 		 * @param details the details {@link Map} to use
 		 */
@@ -219,15 +217,15 @@ public final class Health {
 		}
 
 		/**
-		 * Record detail using given {@code key} and {@code value}.
+		 * Record detail using <code>key</code> and <code>value</code>.
 		 * @param key the detail key
-		 * @param value the detail value
+		 * @param data the detail data
 		 * @return this {@link Builder} instance
 		 */
-		public Builder withDetail(String key, Object value) {
+		public Builder withDetail(String key, Object data) {
 			Assert.notNull(key, "Key must not be null");
-			Assert.notNull(value, "Value must not be null");
-			this.details.put(key, value);
+			Assert.notNull(data, "Data must not be null");
+			this.details.put(key, data);
 			return this;
 		}
 
@@ -273,7 +271,7 @@ public final class Health {
 		}
 
 		/**
-		 * Set status to given {@code statusCode}.
+		 * Set status to given <code>statusCode</code>.
 		 * @param statusCode the status code
 		 * @return this {@link Builder} instance
 		 */
@@ -282,7 +280,7 @@ public final class Health {
 		}
 
 		/**
-		 * Set status to given {@link Status} instance.
+		 * Set status to given {@link Status} instance
 		 * @param status the status
 		 * @return this {@link Builder} instance
 		 */
@@ -299,7 +297,6 @@ public final class Health {
 		public Health build() {
 			return new Health(this);
 		}
-
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,7 @@
 
 package org.springframework.boot.autoconfigure.jms.activemq;
 
-import java.lang.reflect.InvocationTargetException;
-
 import org.apache.activemq.ActiveMQConnectionFactory;
-
-import org.springframework.boot.autoconfigure.jms.activemq.ActiveMQProperties.Packages;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -29,7 +25,6 @@ import org.springframework.util.StringUtils;
  * in {@link ActiveMQProperties}.
  *
  * @author Phillip Webb
- * @author Venil Noronha
  * @since 1.2.0
  */
 class ActiveMQConnectionFactoryFactory {
@@ -40,7 +35,7 @@ class ActiveMQConnectionFactoryFactory {
 
 	private final ActiveMQProperties properties;
 
-	ActiveMQConnectionFactoryFactory(ActiveMQProperties properties) {
+	public ActiveMQConnectionFactoryFactory(ActiveMQProperties properties) {
 		Assert.notNull(properties, "Properties must not be null");
 		this.properties = properties;
 	}
@@ -51,27 +46,13 @@ class ActiveMQConnectionFactoryFactory {
 			return doCreateConnectionFactory(factoryClass);
 		}
 		catch (Exception ex) {
-			throw new IllegalStateException(
-					"Unable to create " + "ActiveMQConnectionFactory", ex);
+			throw new IllegalStateException("Unable to create "
+					+ "ActiveMQConnectionFactory", ex);
 		}
 	}
 
 	private <T extends ActiveMQConnectionFactory> T doCreateConnectionFactory(
 			Class<T> factoryClass) throws Exception {
-		T factory = createConnectionFactoryInstance(factoryClass);
-		Packages packages = this.properties.getPackages();
-		if (packages.getTrustAll() != null) {
-			factory.setTrustAllPackages(packages.getTrustAll());
-		}
-		if (!packages.getTrusted().isEmpty()) {
-			factory.setTrustedPackages(packages.getTrusted());
-		}
-		return factory;
-	}
-
-	private <T extends ActiveMQConnectionFactory> T createConnectionFactoryInstance(
-			Class<T> factoryClass) throws InstantiationException, IllegalAccessException,
-					InvocationTargetException, NoSuchMethodException {
 		String brokerUrl = determineBrokerUrl();
 		String user = this.properties.getUser();
 		String password = this.properties.getPassword();

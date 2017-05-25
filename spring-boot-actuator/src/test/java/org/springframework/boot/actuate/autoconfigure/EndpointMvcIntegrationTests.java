@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -32,52 +31,50 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.autoconfigure.EndpointMvcIntegrationTests.Application;
 import org.springframework.boot.actuate.endpoint.Endpoint;
 import org.springframework.boot.actuate.endpoint.mvc.EndpointHandlerMapping;
 import org.springframework.boot.actuate.endpoint.mvc.EndpointHandlerMappingCustomizer;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.EmbeddedServletContainerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.ErrorMvcAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.HttpMessageConverters;
+import org.springframework.boot.autoconfigure.web.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.ServerPropertiesAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
-import org.springframework.boot.context.embedded.LocalServerPort;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.IntegrationTest;
+import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.boot.test.TestRestTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Integration tests for MVC {@link Endpoint}s.
  *
  * @author Dave Syer
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringApplicationConfiguration(classes = Application.class)
+@IntegrationTest("server.port=0")
+@WebAppConfiguration
 @DirtiesContext
-@TestPropertySource(properties = "management.security.enabled=false")
 public class EndpointMvcIntegrationTests {
 
-	@LocalServerPort
+	@Value("${local.server.port}")
 	private int port;
 
 	@Autowired
@@ -85,33 +82,31 @@ public class EndpointMvcIntegrationTests {
 
 	@Test
 	public void envEndpointNotHidden() throws InterruptedException {
-		String body = new TestRestTemplate().getForObject(
-				"http://localhost:" + this.port + "/env/user.dir", String.class);
-		assertThat(body).isNotNull().contains("spring-boot-actuator");
-		assertThat(this.interceptor.invoked()).isTrue();
+		String body = new TestRestTemplate().getForObject("http://localhost:" + this.port
+				+ "/env/user.dir", String.class);
+		assertNotNull(body);
+		assertTrue("Wrong body: \n" + body, body.contains("spring-boot-actuator"));
+		assertTrue(this.interceptor.invoked());
 	}
 
-	@Test
-	public void healthEndpointNotHidden() throws InterruptedException {
-		String body = new TestRestTemplate()
-				.getForObject("http://localhost:" + this.port + "/health", String.class);
-		assertThat(body).isNotNull().contains("status");
-		assertThat(this.interceptor.invoked()).isTrue();
+	@Target(ElementType.TYPE)
+	@Retention(RetentionPolicy.RUNTIME)
+	@Documented
+	@Import({ EmbeddedServletContainerAutoConfiguration.class,
+			ServerPropertiesAutoConfiguration.class,
+			DispatcherServletAutoConfiguration.class, WebMvcAutoConfiguration.class,
+			HttpMessageConvertersAutoConfiguration.class,
+			ErrorMvcAutoConfiguration.class, PropertyPlaceholderAutoConfiguration.class })
+	protected static @interface MinimalWebConfiguration {
+
 	}
 
 	@Configuration
 	@MinimalWebConfiguration
 	@Import({ ManagementServerPropertiesAutoConfiguration.class,
-			JacksonAutoConfiguration.class, EndpointAutoConfiguration.class,
-			EndpointWebMvcAutoConfiguration.class, AuditAutoConfiguration.class })
+			EndpointAutoConfiguration.class, EndpointWebMvcAutoConfiguration.class })
 	@RestController
 	protected static class Application {
-
-		private final List<HttpMessageConverter<?>> converters;
-
-		public Application(ObjectProvider<List<HttpMessageConverter<?>>> converters) {
-			this.converters = converters.getIfAvailable();
-		}
 
 		@RequestMapping("/{name}/{env}/{bar}")
 		public Map<String, Object> master(@PathVariable String name,
@@ -126,19 +121,12 @@ public class EndpointMvcIntegrationTests {
 		}
 
 		@Bean
-		@ConditionalOnMissingBean
-		public HttpMessageConverters messageConverters() {
-			return new HttpMessageConverters(this.converters == null
-					? Collections.<HttpMessageConverter<?>>emptyList() : this.converters);
-		}
-
-		@Bean
 		public EndpointHandlerMappingCustomizer mappingCustomizer() {
 			return new EndpointHandlerMappingCustomizer() {
 
 				@Override
 				public void customize(EndpointHandlerMapping mapping) {
-					mapping.setInterceptors(interceptor());
+					mapping.setInterceptors(new Object[] { interceptor() });
 				}
 
 			};
@@ -148,18 +136,6 @@ public class EndpointMvcIntegrationTests {
 		protected TestInterceptor interceptor() {
 			return new TestInterceptor();
 		}
-
-	}
-
-	@Target(ElementType.TYPE)
-	@Retention(RetentionPolicy.RUNTIME)
-	@Documented
-	@Import({ EmbeddedServletContainerAutoConfiguration.class,
-			ServerPropertiesAutoConfiguration.class,
-			DispatcherServletAutoConfiguration.class, WebMvcAutoConfiguration.class,
-			JacksonAutoConfiguration.class, ErrorMvcAutoConfiguration.class,
-			PropertyPlaceholderAutoConfiguration.class })
-	protected @interface MinimalWebConfiguration {
 
 	}
 

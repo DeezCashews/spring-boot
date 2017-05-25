@@ -23,7 +23,6 @@
 						<configuration>
 							<fork>false</fork>
 							<jvmArguments>-Dfoo=bar</jvmArguments>
-							<workingDirectory>${project.build.sourceDirectory}</workingDirectory>
 						</configuration>
 					</execution>
 				</executions>

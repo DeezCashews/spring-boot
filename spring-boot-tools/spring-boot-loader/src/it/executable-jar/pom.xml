@@ -13,7 +13,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>@maven-compiler-plugin.version@</version>
+				<version>3.1</version>
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
@@ -22,7 +22,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
-				<version>@maven-dependency-plugin.version@</version>
+				<version>2.9</version>
 				<executions>
 					<execution>
 						<id>unpack</id>
@@ -86,17 +86,17 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-webapp</artifactId>
-			<version>@jetty.version@</version>
+			<version>8.1.14.v20131031</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-annotations</artifactId>
-			<version>@jetty.version@</version>
+			<version>8.1.14.v20131031</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webmvc</artifactId>
-			<version>@spring.version@</version>
+			<version>4.0.5.RELEASE</version>
 		</dependency>
 	</dependencies>
 </project>

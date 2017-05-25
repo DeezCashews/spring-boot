@@ -1,4 +1,5 @@
-@SpringBootTest(classes=Application)
+@SpringApplicationConfiguration(classes=Application)
+@IntegrationTest
 class BookTests {
 	@Autowired
 	Book book

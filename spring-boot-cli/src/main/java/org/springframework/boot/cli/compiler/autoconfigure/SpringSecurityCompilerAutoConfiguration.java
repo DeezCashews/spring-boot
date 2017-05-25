@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package org.springframework.boot.cli.compiler.autoconfigure;
 
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
-
 import org.springframework.boot.cli.compiler.AstUtils;
 import org.springframework.boot.cli.compiler.CompilerAutoConfiguration;
 import org.springframework.boot.cli.compiler.DependencyCustomizer;
@@ -32,22 +31,20 @@ public class SpringSecurityCompilerAutoConfiguration extends CompilerAutoConfigu
 
 	@Override
 	public boolean matches(ClassNode classNode) {
-		return AstUtils.hasAtLeastOneAnnotation(classNode, "EnableWebSecurity",
-				"EnableGlobalMethodSecurity");
+		return AstUtils.hasAtLeastOneAnnotation(classNode, "EnableWebSecurity");
 	}
 
 	@Override
 	public void applyDependencies(DependencyCustomizer dependencies) {
 		dependencies
 				.ifAnyMissingClasses(
-						"org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity")
-				.add("spring-boot-starter-security");
+						"org.springframework.security.config.annotation.web.configuration.EnableWebSecurity")
+				.add("spring-security-config").add("spring-security-web", false);
 	}
 
 	@Override
 	public void applyImports(ImportCustomizer imports) {
 		imports.addImports("org.springframework.security.core.Authentication",
-				"org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity",
 				"org.springframework.security.core.authority.AuthorityUtils")
 				.addStarImports(
 						"org.springframework.security.config.annotation.web.configuration",
@@ -55,5 +52,4 @@ public class SpringSecurityCompilerAutoConfiguration extends CompilerAutoConfigu
 						"org.springframework.security.config.annotation.web",
 						"org.springframework.security.config.annotation.web.builders");
 	}
-
 }

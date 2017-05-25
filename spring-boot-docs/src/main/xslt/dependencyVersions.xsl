@@ -4,12 +4,11 @@
 				version="1.0">
 
 	<xsl:output method="text" encoding="UTF-8" indent="no"/>
-    <xsl:key name="by-full-name" match="//mvn:dependency" use="concat(mvn:groupId, '.', mvn:artifactId)"/>
+
 	<xsl:template match="/">
 		<xsl:text>|===&#xa;</xsl:text>
 		<xsl:text>| Group ID | Artifact ID | Version&#xa;</xsl:text>
-		<xsl:for-each select="//mvn:dependency[generate-id() = generate-id(key('by-full-name',
-		        concat(mvn:groupId, '.', mvn:artifactId))[1])]">
+		<xsl:for-each select="//mvn:dependency">
 			<xsl:sort select="mvn:groupId"/>
 			<xsl:sort select="mvn:artifactId"/>
 			<xsl:text>&#xa;</xsl:text>

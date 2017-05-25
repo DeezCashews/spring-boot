@@ -34,9 +34,8 @@ public class ApplicationPreparedEvent extends SpringApplicationEvent {
 	private final ConfigurableApplicationContext context;
 
 	/**
-	 * Create a new {@link ApplicationPreparedEvent} instance.
 	 * @param application the current application
-	 * @param args the arguments the application is running with
+	 * @param args the argumemts the application is running with
 	 * @param context the ApplicationContext about to be refreshed
 	 */
 	public ApplicationPreparedEvent(SpringApplication application, String[] args,
@@ -46,7 +45,6 @@ public class ApplicationPreparedEvent extends SpringApplicationEvent {
 	}
 
 	/**
-	 * Return the application context.
 	 * @return the context
 	 */
 	public ConfigurableApplicationContext getApplicationContext() {

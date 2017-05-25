@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,16 +20,16 @@ import org.apache.commons.dbcp.BasicDataSource;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 /**
  * Tests for {@link CommonsDbcpDataSourcePoolMetadata}.
  *
  * @author Stephane Nicoll
  */
-@Deprecated
-public class CommonsDbcpDataSourcePoolMetadataTests
-		extends AbstractDataSourcePoolMetadataTests<CommonsDbcpDataSourcePoolMetadata> {
+public class CommonsDbcpDataSourcePoolMetadataTests extends
+		AbstractDataSourcePoolMetadataTests<CommonsDbcpDataSourcePoolMetadata> {
 
 	private CommonsDbcpDataSourcePoolMetadata dataSourceMetadata;
 
@@ -52,7 +52,7 @@ public class CommonsDbcpDataSourcePoolMetadataTests
 				return null;
 			}
 		};
-		assertThat(dsm.getUsage()).isNull();
+		assertNull(dsm.getUsage());
 	}
 
 	@Test
@@ -64,21 +64,21 @@ public class CommonsDbcpDataSourcePoolMetadataTests
 				return null;
 			}
 		};
-		assertThat(dsm.getUsage()).isNull();
+		assertNull(dsm.getUsage());
 	}
 
 	@Test
 	public void getPoolUsageWithUnlimitedPool() {
 		DataSourcePoolMetadata unlimitedDataSource = createDataSourceMetadata(0, -1);
-		assertThat(unlimitedDataSource.getUsage()).isEqualTo(Float.valueOf(-1F));
+		assertEquals(Float.valueOf(-1F), unlimitedDataSource.getUsage());
 	}
 
 	@Override
 	public void getValidationQuery() {
 		BasicDataSource dataSource = createDataSource();
 		dataSource.setValidationQuery("SELECT FROM FOO");
-		assertThat(new CommonsDbcpDataSourcePoolMetadata(dataSource).getValidationQuery())
-				.isEqualTo("SELECT FROM FOO");
+		assertEquals("SELECT FROM FOO",
+				new CommonsDbcpDataSourcePoolMetadata(dataSource).getValidationQuery());
 	}
 
 	private CommonsDbcpDataSourcePoolMetadata createDataSourceMetadata(int minSize,

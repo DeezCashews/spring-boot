@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,17 +20,14 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.bind.RelaxedPropertyResolver;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.env.Environment;
 import org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for Spring's persistence exception
- * translation.
+ * translation
  *
  * @author Andy Wilkinson
- * @author Stephane Nicoll
  * @since 1.2.0
  */
 @ConditionalOnClass(PersistenceExceptionTranslationPostProcessor.class)
@@ -39,18 +36,10 @@ public class PersistenceExceptionTranslationAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean(PersistenceExceptionTranslationPostProcessor.class)
 	@ConditionalOnProperty(prefix = "spring.dao.exceptiontranslation", name = "enabled", matchIfMissing = true)
-	public static PersistenceExceptionTranslationPostProcessor persistenceExceptionTranslationPostProcessor(
-			Environment environment) {
+	public static PersistenceExceptionTranslationPostProcessor persistenceExceptionTranslationPostProcessor() {
 		PersistenceExceptionTranslationPostProcessor postProcessor = new PersistenceExceptionTranslationPostProcessor();
-		postProcessor.setProxyTargetClass(determineProxyTargetClass(environment));
+		postProcessor.setProxyTargetClass(true);
 		return postProcessor;
-	}
-
-	private static boolean determineProxyTargetClass(Environment environment) {
-		RelaxedPropertyResolver resolver = new RelaxedPropertyResolver(environment,
-				"spring.aop.");
-		Boolean value = resolver.getProperty("proxyTargetClass", Boolean.class);
-		return (value != null ? value : true);
 	}
 
 }

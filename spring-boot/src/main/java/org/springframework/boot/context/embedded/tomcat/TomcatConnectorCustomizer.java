@@ -27,7 +27,6 @@ import org.apache.catalina.connector.Connector;
 public interface TomcatConnectorCustomizer {
 
 	/**
-	 * Customize the connector.
 	 * @param connector the connector to customize
 	 */
 	void customize(Connector connector);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,46 +18,52 @@ package sample.traditional;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.IntegrationTest;
+import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.boot.test.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Basic integration tests for demo application.
  *
  * @author Dave Syer
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringApplicationConfiguration(classes = SampleTraditionalApplication.class)
+@WebAppConfiguration
+@IntegrationTest("server.port:0")
 @DirtiesContext
 public class SampleTraditionalApplicationTests {
 
-	@Autowired
-	private TestRestTemplate restTemplate;
+	@Value("${local.server.port}")
+	private int port;
 
 	@Test
 	public void testHomeJsp() throws Exception {
-		ResponseEntity<String> entity = this.restTemplate.getForEntity("/", String.class);
-		assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.OK);
+		ResponseEntity<String> entity = new TestRestTemplate().getForEntity(
+				"http://localhost:" + this.port, String.class);
+		assertEquals(HttpStatus.OK, entity.getStatusCode());
 		String body = entity.getBody();
-		assertThat(body).contains("<html>").contains("<h1>Home</h1>");
+		assertTrue("Wrong body:\n" + body, body.contains("<html>"));
+		assertTrue("Wrong body:\n" + body, body.contains("<h1>Home</h1>"));
 	}
 
 	@Test
 	public void testStaticPage() throws Exception {
-		ResponseEntity<String> entity = this.restTemplate.getForEntity("/index.html",
-				String.class);
-		assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.OK);
+		ResponseEntity<String> entity = new TestRestTemplate().getForEntity(
+				"http://localhost:" + this.port + "/index.html", String.class);
+		assertEquals(HttpStatus.OK, entity.getStatusCode());
 		String body = entity.getBody();
-		assertThat(body).contains("<html>").contains("<h1>Hello</h1>");
+		assertTrue("Wrong body:\n" + body, body.contains("<html>"));
+		assertTrue("Wrong body:\n" + body, body.contains("<h1>Hello</h1>"));
 	}
 
 }

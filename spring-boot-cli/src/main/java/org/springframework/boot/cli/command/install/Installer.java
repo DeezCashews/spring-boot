@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,13 +46,13 @@ class Installer {
 
 	private final Properties installCounts;
 
-	Installer(OptionSet options, CompilerOptionHandler compilerOptionHandler)
+	public Installer(OptionSet options, CompilerOptionHandler compilerOptionHandler)
 			throws IOException {
-		this(new GroovyGrabDependencyResolver(
-				createCompilerConfiguration(options, compilerOptionHandler)));
+		this(new GroovyGrabDependencyResolver(createCompilerConfiguration(options,
+				compilerOptionHandler)));
 	}
 
-	Installer(DependencyResolver resolver) throws IOException {
+	public Installer(DependencyResolver resolver) throws IOException {
 		this.dependencyResolver = resolver;
 		this.installCounts = loadInstallCounts();
 	}
@@ -92,15 +92,15 @@ class Installer {
 	}
 
 	public void install(List<String> artifactIdentifiers) throws Exception {
-		File extDirectory = getDefaultExtDirectory();
-		extDirectory.mkdirs();
-		Log.info("Installing into: " + extDirectory);
+		File libDirectory = getDefaultLibDirectory();
+		libDirectory.mkdirs();
+		Log.info("Installing into: " + libDirectory);
 		List<File> artifactFiles = this.dependencyResolver.resolve(artifactIdentifiers);
 		for (File artifactFile : artifactFiles) {
 			int installCount = getInstallCount(artifactFile);
 			if (installCount == 0) {
 				FileCopyUtils.copy(artifactFile,
-						new File(extDirectory, artifactFile.getName()));
+						new File(libDirectory, artifactFile.getName()));
 			}
 			setInstallCount(artifactFile, installCount + 1);
 		}
@@ -125,13 +125,13 @@ class Installer {
 	}
 
 	public void uninstall(List<String> artifactIdentifiers) throws Exception {
-		File extDirectory = getDefaultExtDirectory();
-		Log.info("Uninstalling from: " + extDirectory);
+		File libDirectory = getDefaultLibDirectory();
+		Log.info("Uninstalling from: " + libDirectory);
 		List<File> artifactFiles = this.dependencyResolver.resolve(artifactIdentifiers);
 		for (File artifactFile : artifactFiles) {
 			int installCount = getInstallCount(artifactFile);
 			if (installCount <= 1) {
-				new File(extDirectory, artifactFile.getName()).delete();
+				new File(libDirectory, artifactFile.getName()).delete();
 			}
 			setInstallCount(artifactFile, installCount - 1);
 		}
@@ -139,30 +139,23 @@ class Installer {
 	}
 
 	public void uninstallAll() throws Exception {
-		File extDirectory = getDefaultExtDirectory();
-		Log.info("Uninstalling from: " + extDirectory);
+		File libDirectory = getDefaultLibDirectory();
+		Log.info("Uninstalling from: " + libDirectory);
 		for (String name : this.installCounts.stringPropertyNames()) {
-			new File(extDirectory, name).delete();
+			new File(libDirectory, name).delete();
 		}
 		this.installCounts.clear();
 		saveInstallCounts();
 	}
 
-	private File getDefaultExtDirectory() {
+	private File getDefaultLibDirectory() {
 		String home = SystemPropertyUtils
 				.resolvePlaceholders("${spring.home:${SPRING_HOME:.}}");
-		File extDirectory = new File(new File(home, "lib"), "ext");
-		if (!extDirectory.isDirectory()) {
-			if (!extDirectory.mkdirs()) {
-				throw new IllegalStateException(
-						"Failed to create ext directory " + extDirectory);
-			}
-		}
-		return extDirectory;
+		return new File(home, "lib");
 	}
 
 	private File getInstalled() {
-		return new File(getDefaultExtDirectory(), ".installed");
+		return new File(getDefaultLibDirectory(), ".installed");
 	}
 
 }

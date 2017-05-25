@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
 
 /**
  * Integration tests to exercise and reproduce specific issues.
@@ -40,7 +41,8 @@ public class ReproIntegrationTests {
 	@Test
 	public void grabAntBuilder() throws Exception {
 		this.cli.run("grab-ant-builder.groovy");
-		assertThat(this.cli.getHttpOutput()).contains("{\"message\":\"Hello World\"}");
+		assertThat(this.cli.getHttpOutput(),
+				containsString("{\"message\":\"Hello World\"}"));
 	}
 
 	// Security depends on old versions of Spring so if the dependencies aren't pinned
@@ -48,19 +50,20 @@ public class ReproIntegrationTests {
 	@Test
 	public void securityDependencies() throws Exception {
 		this.cli.run("secure.groovy");
-		assertThat(this.cli.getOutput()).contains("Hello World");
+		assertThat(this.cli.getOutput(), containsString("Hello World"));
 	}
 
 	@Test
 	public void shellDependencies() throws Exception {
 		this.cli.run("crsh.groovy");
-		assertThat(this.cli.getHttpOutput()).contains("{\"message\":\"Hello World\"}");
+		assertThat(this.cli.getHttpOutput(),
+				containsString("{\"message\":\"Hello World\"}"));
 	}
 
 	@Test
 	public void dataJpaDependencies() throws Exception {
 		this.cli.run("data-jpa.groovy");
-		assertThat(this.cli.getOutput()).contains("Hello World");
+		assertThat(this.cli.getOutput(), containsString("Hello World"));
 	}
 
 	@Test

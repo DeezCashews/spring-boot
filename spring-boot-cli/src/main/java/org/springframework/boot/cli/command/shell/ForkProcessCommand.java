@@ -37,7 +37,7 @@ class ForkProcessCommand extends RunProcessCommand {
 
 	private final Command command;
 
-	ForkProcessCommand(Command command) {
+	public ForkProcessCommand(Command command) {
 		super(new JavaExecutable().toString());
 		this.command = command;
 	}

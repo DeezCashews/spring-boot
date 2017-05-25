@@ -19,7 +19,6 @@ package org.springframework.boot.autoconfigure.condition;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ConditionContext;
@@ -41,8 +40,8 @@ public class SpringBootConditionTests {
 	@Test
 	public void sensibleClassException() {
 		this.thrown.expect(IllegalStateException.class);
-		this.thrown.expectMessage(
-				"Error processing condition on " + ErrorOnClass.class.getName());
+		this.thrown.expectMessage("Error processing condition on "
+				+ ErrorOnClass.class.getName());
 		new AnnotationConfigApplicationContext(ErrorOnClass.class);
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ import javax.persistence.EntityManagerFactory;
 
 import org.junit.After;
 import org.junit.Test;
-
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.TestAutoConfigurationPackage;
-import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.alt.mongo.CityMongoDbRepository;
 import org.springframework.boot.autoconfigure.data.alt.solr.CitySolrRepository;
 import org.springframework.boot.autoconfigure.data.jpa.city.City;
@@ -37,7 +36,7 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Tests for {@link JpaRepositoriesAutoConfiguration}.
@@ -58,19 +57,19 @@ public class JpaRepositoriesAutoConfigurationTests {
 	public void testDefaultRepositoryConfiguration() throws Exception {
 		prepareApplicationContext(TestConfiguration.class);
 
-		assertThat(this.context.getBean(CityRepository.class)).isNotNull();
-		assertThat(this.context.getBean(PlatformTransactionManager.class)).isNotNull();
-		assertThat(this.context.getBean(EntityManagerFactory.class)).isNotNull();
+		assertNotNull(this.context.getBean(CityRepository.class));
+		assertNotNull(this.context.getBean(PlatformTransactionManager.class));
+		assertNotNull(this.context.getBean(EntityManagerFactory.class));
 	}
 
 	@Test
 	public void testOverrideRepositoryConfiguration() throws Exception {
 		prepareApplicationContext(CustomConfiguration.class);
-		assertThat(this.context.getBean(
-				org.springframework.boot.autoconfigure.data.alt.jpa.CityJpaRepository.class))
-						.isNotNull();
-		assertThat(this.context.getBean(PlatformTransactionManager.class)).isNotNull();
-		assertThat(this.context.getBean(EntityManagerFactory.class)).isNotNull();
+
+		assertNotNull(this.context
+				.getBean(org.springframework.boot.autoconfigure.data.alt.jpa.CityJpaRepository.class));
+		assertNotNull(this.context.getBean(PlatformTransactionManager.class));
+		assertNotNull(this.context.getBean(EntityManagerFactory.class));
 	}
 
 	@Test(expected = NoSuchBeanDefinitionException.class)
@@ -112,5 +111,4 @@ public class JpaRepositoriesAutoConfigurationTests {
 	protected static class SortOfInvalidCustomConfiguration {
 
 	}
-
 }

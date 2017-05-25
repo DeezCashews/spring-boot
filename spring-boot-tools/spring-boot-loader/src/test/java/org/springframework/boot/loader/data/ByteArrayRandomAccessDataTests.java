@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,12 @@
 
 package org.springframework.boot.loader.data;
 
-import java.io.InputStream;
-
 import org.junit.Test;
-
 import org.springframework.boot.loader.data.RandomAccessData.ResourceAccess;
 import org.springframework.util.FileCopyUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests for {@link ByteArrayRandomAccessData}.
@@ -36,9 +34,9 @@ public class ByteArrayRandomAccessDataTests {
 	public void testGetInputStream() throws Exception {
 		byte[] bytes = new byte[] { 0, 1, 2, 3, 4, 5 };
 		RandomAccessData data = new ByteArrayRandomAccessData(bytes);
-		InputStream inputStream = data.getInputStream(ResourceAccess.PER_READ);
-		assertThat(FileCopyUtils.copyToByteArray(inputStream)).isEqualTo(bytes);
-		assertThat(data.getSize()).isEqualTo(bytes.length);
+		assertThat(FileCopyUtils.copyToByteArray(data
+				.getInputStream(ResourceAccess.PER_READ)), equalTo(bytes));
+		assertThat(data.getSize(), equalTo((long) bytes.length));
 	}
 
 	@Test
@@ -46,10 +44,8 @@ public class ByteArrayRandomAccessDataTests {
 		byte[] bytes = new byte[] { 0, 1, 2, 3, 4, 5 };
 		RandomAccessData data = new ByteArrayRandomAccessData(bytes);
 		data = data.getSubsection(1, 4).getSubsection(1, 2);
-		InputStream inputStream = data.getInputStream(ResourceAccess.PER_READ);
-		assertThat(FileCopyUtils.copyToByteArray(inputStream))
-				.isEqualTo(new byte[] { 2, 3 });
-		assertThat(data.getSize()).isEqualTo(2L);
+		assertThat(FileCopyUtils.copyToByteArray(data
+				.getInputStream(ResourceAccess.PER_READ)), equalTo(new byte[] { 2, 3 }));
+		assertThat(data.getSize(), equalTo(2L));
 	}
-
 }

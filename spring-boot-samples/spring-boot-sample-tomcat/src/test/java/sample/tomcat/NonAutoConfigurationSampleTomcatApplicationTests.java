@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,42 +18,46 @@ package sample.tomcat;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import sample.tomcat.service.HelloWorldService;
-import sample.tomcat.web.SampleController;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
+import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.EmbeddedServletContainerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.ServerPropertiesAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.IntegrationTest;
+import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.boot.test.TestRestTemplate;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import sample.tomcat.NonAutoConfigurationSampleTomcatApplicationTests.NonAutoConfigurationSampleTomcatApplication;
+import sample.tomcat.service.HelloWorldService;
+import sample.tomcat.web.SampleController;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Basic integration tests for demo application.
  *
  * @author Dave Syer
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringApplicationConfiguration(classes = NonAutoConfigurationSampleTomcatApplication.class)
+@WebAppConfiguration
+@IntegrationTest("server.port=0")
 @DirtiesContext
 public class NonAutoConfigurationSampleTomcatApplicationTests {
 
-	@Autowired
-	private TestRestTemplate restTemplate;
+	@Value("${local.server.port}")
+	private int port;
 
 	@Configuration
 	@Import({ EmbeddedServletContainerAutoConfiguration.class,
@@ -61,8 +65,7 @@ public class NonAutoConfigurationSampleTomcatApplicationTests {
 			ServerPropertiesAutoConfiguration.class, WebMvcAutoConfiguration.class,
 			HttpMessageConvertersAutoConfiguration.class,
 			PropertyPlaceholderAutoConfiguration.class })
-	@ComponentScan(basePackageClasses = { SampleController.class,
-			HelloWorldService.class })
+	@ComponentScan(basePackageClasses = { SampleController.class, HelloWorldService.class })
 	public static class NonAutoConfigurationSampleTomcatApplication {
 
 		public static void main(String[] args) throws Exception {
@@ -73,9 +76,10 @@ public class NonAutoConfigurationSampleTomcatApplicationTests {
 
 	@Test
 	public void testHome() throws Exception {
-		ResponseEntity<String> entity = this.restTemplate.getForEntity("/", String.class);
-		assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(entity.getBody()).isEqualTo("Hello World");
+		ResponseEntity<String> entity = new TestRestTemplate().getForEntity(
+				"http://localhost:" + this.port, String.class);
+		assertEquals(HttpStatus.OK, entity.getStatusCode());
+		assertEquals("Hello World", entity.getBody());
 	}
 
 }

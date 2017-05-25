@@ -70,33 +70,29 @@ public class Library {
 	}
 
 	/**
-	 * Return the name of file as it should be written.
-	 * @return then name.
+	 * @return the name of file as it should be written
 	 */
 	public String getName() {
 		return this.name;
 	}
 
 	/**
-	 * Return the library file.
-	 * @return the file
+	 * @return the library file
 	 */
 	public File getFile() {
 		return this.file;
 	}
 
 	/**
-	 * Return the scope of the library.
-	 * @return the scope
+	 * @return the scope of the library
 	 */
 	public LibraryScope getScope() {
 		return this.scope;
 	}
 
 	/**
-	 * Return if the file cannot be used directly as a nested jar and needs to be
+	 * @return if the file cannot be used directly as a nested jar and needs to be
 	 * unpacked.
-	 * @return if unpack is required
 	 */
 	public boolean isUnpackRequired() {
 		return this.unpackRequired;

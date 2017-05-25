@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,10 +58,11 @@ public class RedisMetricRepository implements MetricRepository {
 	 * Create a RedisMetricRepository with a default prefix to apply to all metric names.
 	 * If multiple repositories share a redis instance they will feed into the same global
 	 * metrics.
+	 *
 	 * @param redisConnectionFactory the redis connection factory
 	 */
 	public RedisMetricRepository(RedisConnectionFactory redisConnectionFactory) {
-		this(redisConnectionFactory, null);
+		this(redisConnectionFactory, DEFAULT_METRICS_PREFIX);
 	}
 
 	/**
@@ -69,12 +70,13 @@ public class RedisMetricRepository implements MetricRepository {
 	 * unique to this repository or to a logical repository contributed to by multiple
 	 * instances, where they all see the same values). Recommended constructor for general
 	 * purpose use.
+	 *
 	 * @param redisConnectionFactory the redis connection factory
 	 * @param prefix the prefix to set for all metrics keys
 	 */
 	public RedisMetricRepository(RedisConnectionFactory redisConnectionFactory,
 			String prefix) {
-		this(redisConnectionFactory, prefix, null);
+		this(redisConnectionFactory, prefix, DEFAULT_KEY);
 	}
 
 	/**
@@ -82,27 +84,24 @@ public class RedisMetricRepository implements MetricRepository {
 	 * redis store will hold a zset under the key just so the metric names can be
 	 * enumerated. Read operations, especially {@link #findAll()} and {@link #count()},
 	 * will only be accurate if the key is unique to the prefix of this repository.
+	 *
 	 * @param redisConnectionFactory the redis connection factory
 	 * @param prefix the prefix to set for all metrics keys
 	 * @param key the key to set
 	 */
 	public RedisMetricRepository(RedisConnectionFactory redisConnectionFactory,
 			String prefix, String key) {
-		if (prefix == null) {
-			prefix = DEFAULT_METRICS_PREFIX;
-			if (key == null) {
-				key = DEFAULT_KEY;
-			}
-		}
-		else if (key == null) {
-			key = "keys." + prefix;
-		}
 		Assert.notNull(redisConnectionFactory, "RedisConnectionFactory must not be null");
 		this.redisOperations = RedisUtils.stringTemplate(redisConnectionFactory);
 		if (!prefix.endsWith(".")) {
 			prefix = prefix + ".";
 		}
 		this.prefix = prefix;
+		if (!DEFAULT_METRICS_PREFIX.equals(this.prefix)) {
+			if (DEFAULT_KEY.equals(key)) {
+				key = "keys." + prefix;
+			}
+		}
 		if (key.endsWith(".")) {
 			key = key.substring(0, key.length() - 1);
 		}
@@ -147,8 +146,8 @@ public class RedisMetricRepository implements MetricRepository {
 		String name = delta.getName();
 		String key = keyFor(name);
 		trackMembership(key);
-		double value = this.zSetOperations.incrementScore(key,
-				delta.getValue().doubleValue());
+		double value = this.zSetOperations.incrementScore(key, delta.getValue()
+				.doubleValue());
 		String raw = serialize(new Metric<Double>(name, value, delta.getTimestamp()));
 		this.redisOperations.opsForValue().set(key, raw);
 	}

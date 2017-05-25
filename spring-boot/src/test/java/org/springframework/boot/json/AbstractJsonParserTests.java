@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,140 +19,72 @@ package org.springframework.boot.json;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Base for {@link JsonParser} tests.
  *
  * @author Dave Syer
- * @author Jean de Klerk
  */
 public abstract class AbstractJsonParserTests {
-
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
 
 	private final JsonParser parser = getParser();
 
 	protected abstract JsonParser getParser();
 
 	@Test
-	public void simpleMap() {
+	public void testSimpleMap() {
 		Map<String, Object> map = this.parser.parseMap("{\"foo\":\"bar\",\"spam\":1}");
-		assertThat(map).hasSize(2);
-		assertThat(map.get("foo")).isEqualTo("bar");
-		assertThat(((Number) map.get("spam")).longValue()).isEqualTo(1L);
+		assertEquals(2, map.size());
+		assertEquals("bar", map.get("foo"));
+		assertEquals(1L, ((Number) map.get("spam")).longValue());
 	}
 
 	@Test
-	public void doubleValue() {
+	public void testDoubleValie() {
 		Map<String, Object> map = this.parser.parseMap("{\"foo\":\"bar\",\"spam\":1.23}");
-		assertThat(map).hasSize(2);
-		assertThat(map.get("foo")).isEqualTo("bar");
-		assertThat(map.get("spam")).isEqualTo(1.23d);
+		assertEquals(2, map.size());
+		assertEquals("bar", map.get("foo"));
+		assertEquals(1.23d, map.get("spam"));
 	}
 
 	@Test
-	public void emptyMap() {
+	public void testEmptyMap() {
 		Map<String, Object> map = this.parser.parseMap("{}");
-		assertThat(map).isEmpty();
+		assertEquals(0, map.size());
 	}
 
 	@Test
-	public void simpleList() {
+	public void testSimpleList() {
 		List<Object> list = this.parser.parseList("[\"foo\",\"bar\",1]");
-		assertThat(list).hasSize(3);
-		assertThat(list.get(1)).isEqualTo("bar");
+		assertEquals(3, list.size());
+		assertEquals("bar", list.get(1));
 	}
 
 	@Test
-	public void emptyList() {
+	public void testEmptyList() {
 		List<Object> list = this.parser.parseList("[]");
-		assertThat(list).isEmpty();
+		assertEquals(0, list.size());
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
-	public void listOfMaps() {
+	public void testListOfMaps() {
 		List<Object> list = this.parser
 				.parseList("[{\"foo\":\"bar\",\"spam\":1},{\"foo\":\"baz\",\"spam\":2}]");
-		assertThat(list).hasSize(2);
-		assertThat(((Map<String, Object>) list.get(1))).hasSize(2);
+		assertEquals(2, list.size());
+		assertEquals(2, ((Map<String, Object>) list.get(1)).size());
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
-	public void mapOfLists() {
-		Map<String, Object> map = this.parser.parseMap(
-				"{\"foo\":[{\"foo\":\"bar\",\"spam\":1},{\"foo\":\"baz\",\"spam\":2}]}");
-		assertThat(map).hasSize(1);
-		assertThat(((List<Object>) map.get("foo"))).hasSize(2);
-	}
-
-	@Test
-	public void mapWithNullThrowsARuntimeException() {
-		this.thrown.expect(RuntimeException.class);
-		this.parser.parseMap(null);
-	}
-
-	@Test
-	public void listWithNullThrowsARuntimeException() {
-		this.thrown.expect(RuntimeException.class);
-		this.parser.parseList(null);
-	}
-
-	@Test
-	public void mapWithEmptyStringThrowsARuntimeException() {
-		this.thrown.expect(RuntimeException.class);
-		this.parser.parseMap("");
-	}
-
-	@Test
-	public void listWithEmptyStringThrowsARuntimeException() {
-		this.thrown.expect(RuntimeException.class);
-		this.parser.parseList("");
-	}
-
-	@Test
-	public void mapWithListThrowsARuntimeException() {
-		this.thrown.expect(RuntimeException.class);
-		this.parser.parseMap("[]");
-	}
-
-	@Test
-	public void listWithMapThrowsARuntimeException() {
-		this.thrown.expect(RuntimeException.class);
-		this.parser.parseList("{}");
-	}
-
-	@Test
-	public void listWithLeadingWhitespace() {
-		List<Object> list = this.parser.parseList("\n\t[\"foo\"]");
-		assertThat(list).hasSize(1);
-		assertThat(list.get(0)).isEqualTo("foo");
-	}
-
-	@Test
-	public void mapWithLeadingWhitespace() {
-		Map<String, Object> map = this.parser.parseMap("\n\t{\"foo\":\"bar\"}");
-		assertThat(map).hasSize(1);
-		assertThat(map.get("foo")).isEqualTo("bar");
-	}
-
-	@Test
-	public void mapWithLeadingWhitespaceListThrowsARuntimeException() {
-		this.thrown.expect(RuntimeException.class);
-		this.parser.parseMap("\n\t[]");
-	}
-
-	@Test
-	public void listWithLeadingWhitespaceMapThrowsARuntimeException() {
-		this.thrown.expect(RuntimeException.class);
-		this.parser.parseList("\n\t{}");
+	public void testMapOfLists() {
+		Map<String, Object> map = this.parser
+				.parseMap("{\"foo\":[{\"foo\":\"bar\",\"spam\":1},{\"foo\":\"baz\",\"spam\":2}]}");
+		assertEquals(1, map.size());
+		assertEquals(2, ((List<Object>) map.get("foo")).size());
 	}
 
 }

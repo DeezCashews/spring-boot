@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,18 +20,19 @@ import java.util.Date;
 import java.util.Map;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-@SpringBootApplication
+@EnableAutoConfiguration
+@ComponentScan
 @Controller
 public class SampleActuatorUiApplication {
 
-	@GetMapping("/")
+	@RequestMapping("/")
 	public String home(Map<String, Object> model) {
 		model.put("message", "Hello World");
 		model.put("title", "Hello Home");
@@ -44,15 +45,15 @@ public class SampleActuatorUiApplication {
 		throw new RuntimeException("Expected exception in controller");
 	}
 
+	public static void main(String[] args) throws Exception {
+		SpringApplication.run(SampleActuatorUiApplication.class, args);
+	}
+
 	@Bean
 	public SecurityProperties securityProperties() {
 		SecurityProperties security = new SecurityProperties();
-		security.getBasic().setPath(""); // empty so home page is insecured
+		security.getBasic().setPath(""); // empty so home page is unsecured
 		return security;
-	}
-
-	public static void main(String[] args) throws Exception {
-		SpringApplication.run(SampleActuatorUiApplication.class, args);
 	}
 
 }

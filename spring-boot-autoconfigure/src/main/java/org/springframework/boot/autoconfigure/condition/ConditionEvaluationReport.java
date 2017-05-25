@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,9 @@
 
 package org.springframework.boot.autoconfigure.condition;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -45,7 +41,7 @@ import org.springframework.util.ObjectUtils;
  * @author Phillip Webb
  * @author Andy Wilkinson
  */
-public final class ConditionEvaluationReport {
+public class ConditionEvaluationReport {
 
 	private static final String BEAN_NAME = "autoConfigurationReport";
 
@@ -56,10 +52,6 @@ public final class ConditionEvaluationReport {
 	private boolean addedAncestorOutcomes;
 
 	private ConditionEvaluationReport parent;
-
-	private List<String> exclusions = Collections.emptyList();
-
-	private Set<String> unconditionalClasses = new HashSet<String>();
 
 	/**
 	 * Private constructor.
@@ -79,7 +71,6 @@ public final class ConditionEvaluationReport {
 		Assert.notNull(source, "Source must not be null");
 		Assert.notNull(condition, "Condition must not be null");
 		Assert.notNull(outcome, "Outcome must not be null");
-		this.unconditionalClasses.remove(source);
 		if (!this.outcomes.containsKey(source)) {
 			this.outcomes.put(source, new ConditionAndOutcomes());
 		}
@@ -88,32 +79,12 @@ public final class ConditionEvaluationReport {
 	}
 
 	/**
-	 * Records the names of the classes that have been excluded from condition evaluation.
-	 * @param exclusions the names of the excluded classes
-	 */
-	public void recordExclusions(Collection<String> exclusions) {
-		Assert.notNull(exclusions, "exclusions must not be null");
-		this.exclusions = new ArrayList<String>(exclusions);
-	}
-
-	/**
-	 * Records the names of the classes that are candidates for condition evaluation.
-	 * @param evaluationCandidates the names of the classes whose conditions will be
-	 * evaluated
-	 */
-	public void recordEvaluationCandidates(List<String> evaluationCandidates) {
-		Assert.notNull(evaluationCandidates, "evaluationCandidates must not be null");
-		this.unconditionalClasses = new HashSet<String>(evaluationCandidates);
-	}
-
-	/**
 	 * Returns condition outcomes from this report, grouped by the source.
 	 * @return the condition outcomes
 	 */
 	public Map<String, ConditionAndOutcomes> getConditionAndOutcomesBySource() {
 		if (!this.addedAncestorOutcomes) {
-			for (Map.Entry<String, ConditionAndOutcomes> entry : this.outcomes
-					.entrySet()) {
+			for (Map.Entry<String, ConditionAndOutcomes> entry : this.outcomes.entrySet()) {
 				if (!entry.getValue().isFullMatch()) {
 					addNoMatchOutcomeToAncestors(entry.getKey());
 				}
@@ -127,27 +98,11 @@ public final class ConditionEvaluationReport {
 		String prefix = source + "$";
 		for (Entry<String, ConditionAndOutcomes> entry : this.outcomes.entrySet()) {
 			if (entry.getKey().startsWith(prefix)) {
-				ConditionOutcome outcome = ConditionOutcome.noMatch(ConditionMessage
-						.forCondition("Ancestor " + source).because("did not match"));
+				ConditionOutcome outcome = new ConditionOutcome(false, "Ancestor '"
+						+ source + "' did not match");
 				entry.getValue().add(ANCESTOR_CONDITION, outcome);
 			}
 		}
-	}
-
-	/**
-	 * Returns the names of the classes that have been excluded from condition evaluation.
-	 * @return the names of the excluded classes
-	 */
-	public List<String> getExclusions() {
-		return Collections.unmodifiableList(this.exclusions);
-	}
-
-	/**
-	 * Returns the names of the classes that were evaluated but were not conditional.
-	 * @return the names of the unconditional classes
-	 */
-	public Set<String> getUnconditionalClasses() {
-		return Collections.unmodifiableSet(this.unconditionalClasses);
 	}
 
 	/**
@@ -251,8 +206,8 @@ public final class ConditionEvaluationReport {
 			}
 			ConditionAndOutcome other = (ConditionAndOutcome) obj;
 			return (ObjectUtils.nullSafeEquals(this.condition.getClass(),
-					other.condition.getClass())
-					&& ObjectUtils.nullSafeEquals(this.outcome, other.outcome));
+					other.condition.getClass()) && ObjectUtils.nullSafeEquals(
+					this.outcome, other.outcome));
 		}
 
 		@Override
@@ -264,7 +219,6 @@ public final class ConditionEvaluationReport {
 		public String toString() {
 			return this.condition.getClass() + " " + this.outcome;
 		}
-
 	}
 
 	private static class AncestorsMatchedCondition implements Condition {

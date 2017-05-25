@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,10 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.naming.NamingException;
-
 import org.apache.catalina.Container;
-import org.apache.catalina.Context;
 import org.apache.catalina.Engine;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.LifecycleState;
@@ -32,8 +29,6 @@ import org.apache.catalina.connector.Connector;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.naming.ContextBindings;
-
 import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerException;
 import org.springframework.util.Assert;
@@ -52,17 +47,13 @@ public class TomcatEmbeddedServletContainer implements EmbeddedServletContainer 
 	private static final Log logger = LogFactory
 			.getLog(TomcatEmbeddedServletContainer.class);
 
-	private static final AtomicInteger containerCounter = new AtomicInteger(-1);
-
-	private final Object monitor = new Object();
-
-	private final Map<Service, Connector[]> serviceConnectors = new HashMap<Service, Connector[]>();
+	private static AtomicInteger containerCounter = new AtomicInteger(-1);
 
 	private final Tomcat tomcat;
 
-	private final boolean autoStart;
+	private final Map<Service, Connector[]> serviceConnectors = new HashMap<Service, Connector[]>();
 
-	private volatile boolean started;
+	private final boolean autoStart;
 
 	/**
 	 * Create a new {@link TomcatEmbeddedServletContainer} instance.
@@ -84,55 +75,29 @@ public class TomcatEmbeddedServletContainer implements EmbeddedServletContainer 
 		initialize();
 	}
 
-	private void initialize() throws EmbeddedServletContainerException {
-		TomcatEmbeddedServletContainer.logger
-				.info("Tomcat initialized with port(s): " + getPortsDescription(false));
-		synchronized (this.monitor) {
-			try {
-				addInstanceIdToEngineName();
-				try {
-					// Remove service connectors to that protocol binding doesn't happen
-					// yet
-					removeServiceConnectors();
+	private synchronized void initialize() throws EmbeddedServletContainerException {
+		TomcatEmbeddedServletContainer.logger.info("Tomcat initialized with port(s): "
+				+ getPortsDescription(false));
+		try {
+			addInstanceIdToEngineName();
 
-					// Start the server to trigger initialization listeners
-					this.tomcat.start();
+			// Remove service connectors to that protocol binding doesn't happen yet
+			removeServiceConnectors();
 
-					// We can re-throw failure exception directly in the main thread
-					rethrowDeferredStartupExceptions();
+			// Start the server to trigger initialization listeners
+			this.tomcat.start();
 
-					Context context = findContext();
-					try {
-						ContextBindings.bindClassLoader(context, getNamingToken(context),
-								getClass().getClassLoader());
-					}
-					catch (NamingException ex) {
-						// Naming is not enabled. Continue
-					}
+			// We can re-throw failure exception directly in the main thread
+			rethrowDeferredStartupExceptions();
 
-					// Unlike Jetty, all Tomcat threads are daemon threads. We create a
-					// blocking non-daemon to stop immediate shutdown
-					startDaemonAwaitThread();
-				}
-				catch (Exception ex) {
-					containerCounter.decrementAndGet();
-					throw ex;
-				}
-			}
-			catch (Exception ex) {
-				throw new EmbeddedServletContainerException(
-						"Unable to start embedded Tomcat", ex);
-			}
+			// Unlike Jetty, all Tomcat threads are daemon threads. We create a
+			// blocking non-daemon to stop immediate shutdown
+			startDaemonAwaitThread();
 		}
-	}
-
-	private Context findContext() {
-		for (Container child : this.tomcat.getHost().findChildren()) {
-			if (child instanceof Context) {
-				return (Context) child;
-			}
+		catch (Exception ex) {
+			throw new EmbeddedServletContainerException(
+					"Unable to start embedded Tomcat", ex);
 		}
-		throw new IllegalStateException("The host does not contain a Context");
 	}
 
 	private void addInstanceIdToEngineName() {
@@ -163,9 +128,6 @@ public class TomcatEmbeddedServletContainer implements EmbeddedServletContainer 
 					throw exception;
 				}
 			}
-			if (!LifecycleState.STARTED.equals(container.getState())) {
-				throw new IllegalStateException(container + " failed to start");
-			}
 		}
 	}
 
@@ -178,67 +140,41 @@ public class TomcatEmbeddedServletContainer implements EmbeddedServletContainer 
 			}
 
 		};
-		awaitThread.setContextClassLoader(getClass().getClassLoader());
 		awaitThread.setDaemon(false);
 		awaitThread.start();
 	}
 
 	@Override
 	public void start() throws EmbeddedServletContainerException {
-		synchronized (this.monitor) {
-			if (this.started) {
-				return;
-			}
-			try {
-				addPreviouslyRemovedConnectors();
-				Connector connector = this.tomcat.getConnector();
-				if (connector != null && this.autoStart) {
-					startConnector(connector);
-				}
-				checkThatConnectorsHaveStarted();
-				this.started = true;
-				TomcatEmbeddedServletContainer.logger
-						.info("Tomcat started on port(s): " + getPortsDescription(true));
-			}
-			catch (ConnectorStartFailedException ex) {
-				stopSilently();
-				throw ex;
-			}
-			catch (Exception ex) {
-				throw new EmbeddedServletContainerException(
-						"Unable to start embedded Tomcat servlet container", ex);
-			}
-			finally {
-				Context context = findContext();
-				ContextBindings.unbindClassLoader(context, getNamingToken(context),
-						getClass().getClassLoader());
-			}
+		addPreviouslyRemovedConnectors();
+		Connector connector = this.tomcat.getConnector();
+		if (connector != null && this.autoStart) {
+			startConnector(connector);
 		}
+		// Ensure process isn't left running if it actually failed to start
+		if (connectorsHaveFailedToStart()) {
+			stopSilently();
+			throw new IllegalStateException("Tomcat connector in failed state");
+		}
+		TomcatEmbeddedServletContainer.logger.info("Tomcat started on port(s): "
+				+ getPortsDescription(true));
 	}
 
-	private void checkThatConnectorsHaveStarted() {
+	private boolean connectorsHaveFailedToStart() {
 		for (Connector connector : this.tomcat.getService().findConnectors()) {
 			if (LifecycleState.FAILED.equals(connector.getState())) {
-				throw new ConnectorStartFailedException(connector.getPort());
+				return true;
 			}
 		}
+		return false;
 	}
 
 	private void stopSilently() {
 		try {
-			stopTomcat();
+			this.tomcat.stop();
 		}
 		catch (LifecycleException ex) {
-			// Ignore
 		}
-	}
-
-	private void stopTomcat() throws LifecycleException {
-		if (Thread.currentThread()
-				.getContextClassLoader() instanceof TomcatEmbeddedWebappClassLoader) {
-			Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-		}
-		this.tomcat.stop();
 	}
 
 	private void addPreviouslyRemovedConnectors() {
@@ -286,28 +222,22 @@ public class TomcatEmbeddedServletContainer implements EmbeddedServletContainer 
 	}
 
 	@Override
-	public void stop() throws EmbeddedServletContainerException {
-		synchronized (this.monitor) {
-			boolean wasStarted = this.started;
+	public synchronized void stop() throws EmbeddedServletContainerException {
+		try {
 			try {
-				this.started = false;
-				try {
-					stopTomcat();
-					this.tomcat.destroy();
-				}
-				catch (LifecycleException ex) {
-					// swallow and continue
-				}
+				this.tomcat.stop();
+				this.tomcat.destroy();
 			}
-			catch (Exception ex) {
-				throw new EmbeddedServletContainerException(
-						"Unable to stop embedded Tomcat", ex);
+			catch (LifecycleException ex) {
+				// swallow and continue
 			}
-			finally {
-				if (wasStarted) {
-					containerCounter.decrementAndGet();
-				}
-			}
+		}
+		catch (Exception ex) {
+			throw new EmbeddedServletContainerException("Unable to stop embedded Tomcat",
+					ex);
+		}
+		finally {
+			containerCounter.decrementAndGet();
 		}
 	}
 
@@ -336,17 +266,6 @@ public class TomcatEmbeddedServletContainer implements EmbeddedServletContainer 
 	 */
 	public Tomcat getTomcat() {
 		return this.tomcat;
-	}
-
-	private Object getNamingToken(Context context) {
-		try {
-			return context.getNamingToken();
-		}
-		catch (NoSuchMethodError ex) {
-			// Use the context itself on Tomcat 7
-			return context;
-		}
-
 	}
 
 }

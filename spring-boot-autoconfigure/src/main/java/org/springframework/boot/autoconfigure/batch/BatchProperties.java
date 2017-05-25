@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Configuration properties for Spring Batch.
  *
  * @author Stephane Nicoll
- * @author Eddú Meléndez
- * @author Vedran Pavic
  * @since 1.2.0
  */
-@ConfigurationProperties(prefix = "spring.batch")
+@ConfigurationProperties("spring.batch")
 public class BatchProperties {
 
 	private static final String DEFAULT_SCHEMA_LOCATION = "classpath:org/springframework/"
@@ -36,11 +34,6 @@ public class BatchProperties {
 	 * Path to the SQL file to use to initialize the database schema.
 	 */
 	private String schema = DEFAULT_SCHEMA_LOCATION;
-
-	/**
-	 * Table prefix for all the batch meta-data tables.
-	 */
-	private String tablePrefix;
 
 	private final Initializer initializer = new Initializer();
 
@@ -54,14 +47,6 @@ public class BatchProperties {
 		this.schema = schema;
 	}
 
-	public String getTablePrefix() {
-		return this.tablePrefix;
-	}
-
-	public void setTablePrefix(String tablePrefix) {
-		this.tablePrefix = tablePrefix;
-	}
-
 	public Initializer getInitializer() {
 		return this.initializer;
 	}
@@ -70,22 +55,15 @@ public class BatchProperties {
 		return this.job;
 	}
 
-	public class Initializer {
+	public static class Initializer {
 
 		/**
-		 * Create the required batch tables on startup if necessary. Enabled automatically
-		 * if no custom table prefix is set or if a custom schema is configured.
+		 * Create the required batch tables on startup if necessary.
 		 */
-		private Boolean enabled;
+		private boolean enabled = true;
 
 		public boolean isEnabled() {
-			if (this.enabled != null) {
-				return this.enabled;
-			}
-			boolean defaultTablePrefix = BatchProperties.this.getTablePrefix() == null;
-			boolean customSchema = !DEFAULT_SCHEMA_LOCATION
-					.equals(BatchProperties.this.getSchema());
-			return (defaultTablePrefix || customSchema);
+			return this.enabled;
 		}
 
 		public void setEnabled(boolean enabled) {
@@ -111,5 +89,4 @@ public class BatchProperties {
 		}
 
 	}
-
 }

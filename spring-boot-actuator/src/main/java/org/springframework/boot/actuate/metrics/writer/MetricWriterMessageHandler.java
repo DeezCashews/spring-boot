@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,6 @@
 
 package org.springframework.boot.actuate.metrics.writer;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.springframework.boot.actuate.metrics.Metric;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHandler;
@@ -29,11 +26,8 @@ import org.springframework.messaging.MessagingException;
  * {@link MetricWriter}.
  *
  * @author Dave Syer
- * @see MessageChannelMetricWriter
  */
 public final class MetricWriterMessageHandler implements MessageHandler {
-
-	private static final Log logger = LogFactory.getLog(MetricWriterMessageHandler.class);
 
 	private final MetricWriter observer;
 
@@ -43,28 +37,14 @@ public final class MetricWriterMessageHandler implements MessageHandler {
 
 	@Override
 	public void handleMessage(Message<?> message) throws MessagingException {
-		handleMessage(new MetricMessage(message));
-	}
-
-	private void handleMessage(MetricMessage message) {
 		Object payload = message.getPayload();
-		if (message.isReset()) {
-			this.observer.reset(message.getMetricName());
-		}
-		else if (payload instanceof Delta) {
+		if (payload instanceof Delta) {
 			Delta<?> value = (Delta<?>) payload;
 			this.observer.increment(value);
 		}
-		else if (payload instanceof Metric) {
+		else {
 			Metric<?> value = (Metric<?>) payload;
 			this.observer.set(value);
 		}
-		else {
-			if (logger.isWarnEnabled()) {
-				logger.warn("Unsupported metric payload "
-						+ (payload == null ? "null" : payload.getClass().getName()));
-			}
-		}
 	}
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.boot.autoconfigure.web;
 import javax.servlet.MultipartConfigElement;
 import javax.servlet.Servlet;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -43,33 +44,28 @@ import org.springframework.web.servlet.DispatcherServlet;
  *
  * @author Greg Turnquist
  * @author Josh Long
- * @author Toshiaki Maki
  */
 @Configuration
 @ConditionalOnClass({ Servlet.class, StandardServletMultipartResolver.class,
 		MultipartConfigElement.class })
-@ConditionalOnProperty(prefix = "spring.http.multipart", name = "enabled", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "multipart", name = "enabled", matchIfMissing = true)
 @EnableConfigurationProperties(MultipartProperties.class)
 public class MultipartAutoConfiguration {
 
-	private final MultipartProperties multipartProperties;
-
-	public MultipartAutoConfiguration(MultipartProperties multipartProperties) {
-		this.multipartProperties = multipartProperties;
-	}
+	@Autowired
+	private MultipartProperties multipartProperties = new MultipartProperties();
 
 	@Bean
-	@ConditionalOnMissingBean
+	@ConditionalOnMissingBean(value = { MultipartConfigElement.class,
+			MultipartResolver.class })
 	public MultipartConfigElement multipartConfigElement() {
 		return this.multipartProperties.createMultipartConfig();
 	}
 
 	@Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
-	@ConditionalOnMissingBean(MultipartResolver.class)
+	@ConditionalOnMissingBean(value = MultipartResolver.class)
 	public StandardServletMultipartResolver multipartResolver() {
-		StandardServletMultipartResolver multipartResolver = new StandardServletMultipartResolver();
-		multipartResolver.setResolveLazily(this.multipartProperties.isResolveLazily());
-		return multipartResolver;
+		return new StandardServletMultipartResolver();
 	}
 
 }

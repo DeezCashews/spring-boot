@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.junit.Ignore;
 import org.junit.Test;
-
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.boot.bind.RelaxedDataBinderTests.TargetWithNestedObject;
 import org.springframework.context.expression.MapAccessor;
@@ -32,7 +31,9 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Dave Syer
@@ -46,7 +47,7 @@ public class BindingPreparationTests {
 		wrapper.setAutoGrowNestedPaths(true);
 		// For a nested map, you only have to get an element of it for it to be created
 		wrapper.getPropertyValue("nested[foo]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
 	}
 
 	@Test
@@ -57,30 +58,8 @@ public class BindingPreparationTests {
 		// For a nested map, you only have to get an element of it for it to be created
 		wrapper.getPropertyValue("nested[foo]");
 		wrapper.setPropertyValue("nested[foo].foo", "bar");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat(wrapper.getPropertyValue("nested[foo]")).isNotNull();
-	}
-
-	@Test
-	public void testListOfBeansWithList() throws Exception {
-		TargetWithNestedListOfBeansWithList target = new TargetWithNestedListOfBeansWithList();
-		BeanWrapperImpl wrapper = new BeanWrapperImpl(target);
-		wrapper.setAutoGrowNestedPaths(true);
-		RelaxedDataBinder binder = new RelaxedDataBinder(target);
-		binder.normalizePath(wrapper, "nested[0].list[1]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat(wrapper.getPropertyValue("nested[0].list[1]")).isNotNull();
-	}
-
-	@Test
-	public void testListOfBeansWithListAndNoPeriod() throws Exception {
-		TargetWithNestedListOfBeansWithList target = new TargetWithNestedListOfBeansWithList();
-		BeanWrapperImpl wrapper = new BeanWrapperImpl(target);
-		wrapper.setAutoGrowNestedPaths(true);
-		RelaxedDataBinder binder = new RelaxedDataBinder(target);
-		binder.normalizePath(wrapper, "nested[0]list[1]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat(wrapper.getPropertyValue("nested[0].list[1]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
+		assertNotNull(wrapper.getPropertyValue("nested[foo]"));
 	}
 
 	@Test
@@ -90,9 +69,9 @@ public class BindingPreparationTests {
 		wrapper.setAutoGrowNestedPaths(true);
 		RelaxedDataBinder binder = new RelaxedDataBinder(target);
 		String result = binder.normalizePath(wrapper, "NESTED[foo][bar]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat("nested[foo][bar]").isEqualTo(result);
-		assertThat(wrapper.getPropertyValue("nested[foo][bar]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
+		assertEquals("nested[foo][bar]", result);
+		assertNotNull(wrapper.getPropertyValue("nested[foo][bar]"));
 	}
 
 	@Test
@@ -102,9 +81,9 @@ public class BindingPreparationTests {
 		wrapper.setAutoGrowNestedPaths(true);
 		RelaxedDataBinder binder = new RelaxedDataBinder(target);
 		String result = binder.normalizePath(wrapper, "nes_ted[foo][bar]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat("nested[foo][bar]").isEqualTo(result);
-		assertThat(wrapper.getPropertyValue("nested[foo][bar]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
+		assertEquals("nested[foo][bar]", result);
+		assertNotNull(wrapper.getPropertyValue("nested[foo][bar]"));
 	}
 
 	@Test
@@ -114,9 +93,9 @@ public class BindingPreparationTests {
 		wrapper.setAutoGrowNestedPaths(true);
 		RelaxedDataBinder binder = new RelaxedDataBinder(target);
 		String result = binder.normalizePath(wrapper, "nested[foo][bar]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat("nested[foo][bar]").isEqualTo(result);
-		assertThat(wrapper.getPropertyValue("nested[foo][bar]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
+		assertEquals("nested[foo][bar]", result);
+		assertNotNull(wrapper.getPropertyValue("nested[foo][bar]"));
 	}
 
 	@Test
@@ -126,9 +105,9 @@ public class BindingPreparationTests {
 		wrapper.setAutoGrowNestedPaths(true);
 		RelaxedDataBinder binder = new RelaxedDataBinder(target);
 		String result = binder.normalizePath(wrapper, "nested[foo].foo");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat("nested[foo].foo").isEqualTo(result);
-		assertThat(wrapper.getPropertyValue("nested[foo]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
+		assertEquals("nested[foo].foo", result);
+		assertNotNull(wrapper.getPropertyValue("nested[foo]"));
 	}
 
 	@Test
@@ -138,8 +117,8 @@ public class BindingPreparationTests {
 		wrapper.setAutoGrowNestedPaths(true);
 		RelaxedDataBinder binder = new RelaxedDataBinder(target);
 		String result = binder.normalizePath(wrapper, "nested.foo.foo");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat("nested[foo].foo").isEqualTo(result);
+		assertNotNull(wrapper.getPropertyValue("nested"));
+		assertEquals("nested[foo].foo", result);
 	}
 
 	@Test
@@ -149,8 +128,8 @@ public class BindingPreparationTests {
 		wrapper.setAutoGrowNestedPaths(true);
 		RelaxedDataBinder binder = new RelaxedDataBinder(target);
 		binder.normalizePath(wrapper, "nested[foo][0]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat(wrapper.getPropertyValue("nested[foo]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
+		assertNotNull(wrapper.getPropertyValue("nested[foo]"));
 	}
 
 	@Test
@@ -160,8 +139,8 @@ public class BindingPreparationTests {
 		wrapper.setAutoGrowNestedPaths(true);
 		RelaxedDataBinder binder = new RelaxedDataBinder(target);
 		binder.normalizePath(wrapper, "nested[0][foo]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat(wrapper.getPropertyValue("nested[0]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
+		assertNotNull(wrapper.getPropertyValue("nested[0]"));
 	}
 
 	@Test
@@ -171,8 +150,8 @@ public class BindingPreparationTests {
 		wrapper.setAutoGrowNestedPaths(true);
 		RelaxedDataBinder binder = new RelaxedDataBinder(target);
 		binder.normalizePath(wrapper, "nested[0][1]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
-		assertThat(wrapper.getPropertyValue("nested[0][1]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
+		assertNotNull(wrapper.getPropertyValue("nested[0][1]"));
 	}
 
 	@Test
@@ -187,9 +166,9 @@ public class BindingPreparationTests {
 		wrapper.setPropertyValue("nested[foo]", new LinkedHashMap<String, Object>());
 		// But it might equally well be a collection, if nested[foo][0]
 		wrapper.setPropertyValue("nested[foo]", new ArrayList<Object>());
-		// Then it would have to be actually bound to get the list to auto-grow
+		// Then it would have to be actually bound to get the list to autogrow
 		wrapper.setPropertyValue("nested[foo][0]", "bar");
-		assertThat(wrapper.getPropertyValue("nested[foo][0]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested[foo][0]"));
 	}
 
 	@Test
@@ -200,7 +179,7 @@ public class BindingPreparationTests {
 		// For a nested object, you have to set a property for it to be created
 		wrapper.setPropertyValue("nested.foo", "bar");
 		wrapper.getPropertyValue("nested");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
 	}
 
 	@Test
@@ -209,13 +188,13 @@ public class BindingPreparationTests {
 		BeanWrapperImpl wrapper = new BeanWrapperImpl(target);
 		wrapper.setAutoGrowNestedPaths(true);
 		TypeDescriptor descriptor = wrapper.getPropertyTypeDescriptor("nested");
-		assertThat(descriptor.isMap()).isTrue();
+		assertTrue(descriptor.isMap());
 		wrapper.getPropertyValue("nested[foo]");
-		assertThat(wrapper.getPropertyValue("nested")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested"));
 		// You also need to bind to a value here
 		wrapper.setPropertyValue("nested[foo][0]", "bar");
 		wrapper.getPropertyValue("nested[foo][0]");
-		assertThat(wrapper.getPropertyValue("nested[foo]")).isNotNull();
+		assertNotNull(wrapper.getPropertyValue("nested[foo]"));
 	}
 
 	@Test
@@ -229,11 +208,10 @@ public class BindingPreparationTests {
 		StandardEvaluationContext context = new StandardEvaluationContext(target);
 		context.addPropertyAccessor(new MapAccessor());
 		Expression expression = parser.parseExpression("nested.foo");
-		assertThat(expression.getValue(context)).isNotNull();
+		assertNotNull(expression.getValue(context));
 	}
 
 	public static class TargetWithNestedMap {
-
 		private Map<String, Object> nested;
 
 		public Map<String, Object> getNested() {
@@ -243,11 +221,9 @@ public class BindingPreparationTests {
 		public void setNested(Map<String, Object> nested) {
 			this.nested = nested;
 		}
-
 	}
 
 	public static class TargetWithNestedMapOfListOfString {
-
 		private Map<String, List<String>> nested;
 
 		public Map<String, List<String>> getNested() {
@@ -257,11 +233,9 @@ public class BindingPreparationTests {
 		public void setNested(Map<String, List<String>> nested) {
 			this.nested = nested;
 		}
-
 	}
 
 	public static class TargetWithNestedListOfMaps {
-
 		private List<Map<String, String>> nested;
 
 		public List<Map<String, String>> getNested() {
@@ -271,11 +245,9 @@ public class BindingPreparationTests {
 		public void setNested(List<Map<String, String>> nested) {
 			this.nested = nested;
 		}
-
 	}
 
 	public static class TargetWithNestedListOfLists {
-
 		private List<List<String>> nested;
 
 		public List<List<String>> getNested() {
@@ -285,39 +257,9 @@ public class BindingPreparationTests {
 		public void setNested(List<List<String>> nested) {
 			this.nested = nested;
 		}
-
-	}
-
-	public static class TargetWithNestedListOfBeansWithList {
-
-		private List<TargetWithList> nested;
-
-		public List<TargetWithList> getNested() {
-			return this.nested;
-		}
-
-		public void setNested(List<TargetWithList> nested) {
-			this.nested = nested;
-		}
-
-	}
-
-	public static class TargetWithList {
-
-		private List<VanillaTarget> list;
-
-		public List<VanillaTarget> getList() {
-			return this.list;
-		}
-
-		public void setList(List<VanillaTarget> list) {
-			this.list = list;
-		}
-
 	}
 
 	public static class TargetWithNestedMapOfBean {
-
 		private Map<String, VanillaTarget> nested;
 
 		public Map<String, VanillaTarget> getNested() {
@@ -327,7 +269,6 @@ public class BindingPreparationTests {
 		public void setNested(Map<String, VanillaTarget> nested) {
 			this.nested = nested;
 		}
-
 	}
 
 	public static class VanillaTarget {
@@ -341,7 +282,5 @@ public class BindingPreparationTests {
 		public void setFoo(String foo) {
 			this.foo = foo;
 		}
-
 	}
-
 }

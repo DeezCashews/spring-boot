@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,12 @@
 
 package org.springframework.boot.cli.compiler.grape;
 
+import groovy.lang.GroovyClassLoader;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
 
-import groovy.lang.GroovyClassLoader;
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
@@ -44,21 +45,27 @@ public abstract class AetherGrapeEngineFactory {
 
 	public static AetherGrapeEngine create(GroovyClassLoader classLoader,
 			List<RepositoryConfiguration> repositoryConfigurations,
-			DependencyResolutionContext dependencyResolutionContext, boolean quiet) {
-		RepositorySystem repositorySystem = createServiceLocator()
-				.getService(RepositorySystem.class);
+			DependencyResolutionContext dependencyResolutionContext) {
+
+		RepositorySystem repositorySystem = createServiceLocator().getService(
+				RepositorySystem.class);
+
 		DefaultRepositorySystemSession repositorySystemSession = MavenRepositorySystemUtils
 				.newSession();
+
 		ServiceLoader<RepositorySystemSessionAutoConfiguration> autoConfigurations = ServiceLoader
 				.load(RepositorySystemSessionAutoConfiguration.class);
+
 		for (RepositorySystemSessionAutoConfiguration autoConfiguration : autoConfigurations) {
 			autoConfiguration.apply(repositorySystemSession, repositorySystem);
 		}
-		new DefaultRepositorySystemSessionAutoConfiguration()
-				.apply(repositorySystemSession, repositorySystem);
+
+		new DefaultRepositorySystemSessionAutoConfiguration().apply(
+				repositorySystemSession, repositorySystem);
+
 		return new AetherGrapeEngine(classLoader, repositorySystem,
 				repositorySystemSession, createRepositories(repositoryConfigurations),
-				dependencyResolutionContext, quiet);
+				dependencyResolutionContext);
 	}
 
 	private static ServiceLocator createServiceLocator() {
@@ -77,17 +84,16 @@ public abstract class AetherGrapeEngineFactory {
 				repositoryConfigurations.size());
 		for (RepositoryConfiguration repositoryConfiguration : repositoryConfigurations) {
 			RemoteRepository.Builder builder = new RemoteRepository.Builder(
-					repositoryConfiguration.getName(), "default",
-					repositoryConfiguration.getUri().toASCIIString());
+					repositoryConfiguration.getName(), "default", repositoryConfiguration
+							.getUri().toASCIIString());
 
 			if (!repositoryConfiguration.getSnapshotsEnabled()) {
-				builder.setSnapshotPolicy(
-						new RepositoryPolicy(false, RepositoryPolicy.UPDATE_POLICY_NEVER,
-								RepositoryPolicy.CHECKSUM_POLICY_IGNORE));
+				builder.setSnapshotPolicy(new RepositoryPolicy(false,
+						RepositoryPolicy.UPDATE_POLICY_NEVER,
+						RepositoryPolicy.CHECKSUM_POLICY_IGNORE));
 			}
 			repositories.add(builder.build());
 		}
 		return repositories;
 	}
-
 }

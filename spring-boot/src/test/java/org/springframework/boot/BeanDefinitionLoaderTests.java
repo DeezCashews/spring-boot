@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,15 @@
 
 package org.springframework.boot;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import sampleconfig.MyComponentInPackageWithoutDot;
-
 import org.springframework.boot.sampleconfig.MyComponent;
 import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link BeanDefinitionLoader}.
@@ -41,26 +40,22 @@ public class BeanDefinitionLoaderTests {
 		this.registry = new StaticApplicationContext();
 	}
 
-	@After
-	public void cleanUp() {
-		this.registry.close();
-	}
-
 	@Test
 	public void loadClass() throws Exception {
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
 				MyComponent.class);
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myComponent")).isTrue();
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myComponent"));
 	}
 
 	@Test
 	public void loadXmlResource() throws Exception {
-		ClassPathResource resource = new ClassPathResource("sample-beans.xml",
-				getClass());
+		ClassPathResource resource = new ClassPathResource("sample-beans.xml", getClass());
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry, resource);
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myXmlComponent")).isTrue();
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myXmlComponent"));
 
 	}
 
@@ -69,8 +64,9 @@ public class BeanDefinitionLoaderTests {
 		ClassPathResource resource = new ClassPathResource("sample-beans.groovy",
 				getClass());
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry, resource);
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myGroovyComponent")).isTrue();
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myGroovyComponent"));
 
 	}
 
@@ -79,8 +75,9 @@ public class BeanDefinitionLoaderTests {
 		ClassPathResource resource = new ClassPathResource("sample-namespace.groovy",
 				getClass());
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry, resource);
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myGroovyComponent")).isTrue();
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myGroovyComponent"));
 
 	}
 
@@ -88,58 +85,54 @@ public class BeanDefinitionLoaderTests {
 	public void loadPackage() throws Exception {
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
 				MyComponent.class.getPackage());
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myComponent")).isTrue();
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myComponent"));
 	}
 
 	@Test
 	public void loadClassName() throws Exception {
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
 				MyComponent.class.getName());
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myComponent")).isTrue();
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myComponent"));
 	}
 
 	@Test
 	public void loadResourceName() throws Exception {
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
 				"classpath:org/springframework/boot/sample-beans.xml");
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myXmlComponent")).isTrue();
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myXmlComponent"));
 	}
 
 	@Test
 	public void loadGroovyName() throws Exception {
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
 				"classpath:org/springframework/boot/sample-beans.groovy");
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myGroovyComponent")).isTrue();
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myGroovyComponent"));
 	}
 
 	@Test
 	public void loadPackageName() throws Exception {
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
 				MyComponent.class.getPackage().getName());
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myComponent")).isTrue();
-	}
-
-	@Test
-	public void loadPackageNameWithoutDot() throws Exception {
-		// See gh-6126
-		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
-				MyComponentInPackageWithoutDot.class.getPackage().getName());
 		int loaded = loader.load();
-		assertThat(loaded).isEqualTo(1);
-		assertThat(this.registry.containsBean("myComponentInPackageWithoutDot")).isTrue();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myComponent"));
 	}
 
 	@Test
 	public void loadPackageAndClassDoesNotDoubleAdd() throws Exception {
 		BeanDefinitionLoader loader = new BeanDefinitionLoader(this.registry,
 				MyComponent.class.getPackage(), MyComponent.class);
-		assertThat(loader.load()).isEqualTo(1);
-		assertThat(this.registry.containsBean("myComponent")).isTrue();
+		int loaded = loader.load();
+		assertThat(loaded, equalTo(1));
+		assertTrue(this.registry.containsBean("myComponent"));
 	}
 
 }

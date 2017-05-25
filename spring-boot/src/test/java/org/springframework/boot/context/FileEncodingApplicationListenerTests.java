@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,11 @@ package org.springframework.boot.context;
 
 import org.junit.Assume;
 import org.junit.Test;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.boot.test.EnvironmentTestUtils;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.StandardEnvironment;
-import org.springframework.test.context.support.TestPropertySourceUtils;
 
 /**
  * Tests for {@link FileEncodingApplicationListener}.
@@ -33,16 +32,14 @@ import org.springframework.test.context.support.TestPropertySourceUtils;
 public class FileEncodingApplicationListenerTests {
 
 	private final FileEncodingApplicationListener initializer = new FileEncodingApplicationListener();
-
 	private final ConfigurableEnvironment environment = new StandardEnvironment();
-
 	private final ApplicationEnvironmentPreparedEvent event = new ApplicationEnvironmentPreparedEvent(
 			new SpringApplication(), new String[0], this.environment);
 
 	@Test(expected = IllegalStateException.class)
 	public void testIllegalState() {
-		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
-				"spring.mandatory_file_encoding=FOO");
+		EnvironmentTestUtils.addEnvironment(this.environment,
+				"spring.mandatory_file_encoding:FOO");
 		this.initializer.onApplicationEvent(this.event);
 	}
 
@@ -54,7 +51,7 @@ public class FileEncodingApplicationListenerTests {
 	@Test
 	public void testSunnyDayMandated() {
 		Assume.assumeNotNull(System.getProperty("file.encoding"));
-		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
+		EnvironmentTestUtils.addEnvironment(this.environment,
 				"spring.mandatory_file_encoding:" + System.getProperty("file.encoding"));
 		this.initializer.onApplicationEvent(this.event);
 	}

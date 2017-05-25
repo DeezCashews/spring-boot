@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,15 +17,12 @@
 package org.springframework.boot.actuate.endpoint.mvc;
 
 import org.springframework.boot.actuate.endpoint.EnvironmentEndpoint;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.EnvironmentAware;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
-import org.springframework.core.env.PropertySource;
-import org.springframework.core.env.PropertySources;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -34,11 +31,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  * @author Dave Syer
  * @author Christian Dupuis
- * @author Andy Wilkinson
  */
-@ConfigurationProperties(prefix = "endpoints.env")
-public class EnvironmentMvcEndpoint extends EndpointMvcAdapter
-		implements EnvironmentAware {
+public class EnvironmentMvcEndpoint extends EndpointMvcAdapter implements
+		EnvironmentAware {
 
 	private Environment environment;
 
@@ -46,16 +41,14 @@ public class EnvironmentMvcEndpoint extends EndpointMvcAdapter
 		super(delegate);
 	}
 
-	@ActuatorGetMapping("/{name:.*}")
+	@RequestMapping(value = "/{name:.*}", method = RequestMethod.GET)
 	@ResponseBody
-	@HypermediaDisabled
 	public Object value(@PathVariable String name) {
-		if (!getDelegate().isEnabled()) {
-			// Shouldn't happen - MVC endpoint shouldn't be registered when delegate's
-			// disabled
-			return getDisabledResponse();
+		String result = this.environment.getProperty(name);
+		if (result == null) {
+			throw new NoSuchPropertyException("No such property: " + name);
 		}
-		return new NamePatternEnvironmentFilter(this.environment).getResults(name);
+		return ((EnvironmentEndpoint) getDelegate()).sanitize(name, result);
 	}
 
 	@Override
@@ -63,58 +56,6 @@ public class EnvironmentMvcEndpoint extends EndpointMvcAdapter
 		this.environment = environment;
 	}
 
-	/**
-	 * {@link NamePatternFilter} for the Environment source.
-	 */
-	private class NamePatternEnvironmentFilter extends NamePatternFilter<Environment> {
-
-		NamePatternEnvironmentFilter(Environment source) {
-			super(source);
-		}
-
-		@Override
-		protected void getNames(Environment source, NameCallback callback) {
-			if (source instanceof ConfigurableEnvironment) {
-				getNames(((ConfigurableEnvironment) source).getPropertySources(),
-						callback);
-			}
-		}
-
-		private void getNames(PropertySources propertySources, NameCallback callback) {
-			for (PropertySource<?> propertySource : propertySources) {
-				if (propertySource instanceof EnumerablePropertySource) {
-					EnumerablePropertySource<?> source = (EnumerablePropertySource<?>) propertySource;
-					for (String name : source.getPropertyNames()) {
-						callback.addName(name);
-					}
-				}
-			}
-		}
-
-		@Override
-		protected Object getOptionalValue(Environment source, String name) {
-			Object result = ((EnvironmentEndpoint) getDelegate()).getResolver()
-					.getProperty(name, Object.class);
-			if (result != null) {
-				result = ((EnvironmentEndpoint) getDelegate()).sanitize(name, result);
-			}
-			return result;
-		}
-
-		@Override
-		protected Object getValue(Environment source, String name) {
-			Object result = source.getProperty(name, Object.class);
-			if (result == null) {
-				throw new NoSuchPropertyException("No such property: " + name);
-			}
-			return ((EnvironmentEndpoint) getDelegate()).sanitize(name, result);
-		}
-
-	}
-
-	/**
-	 * Exception thrown when the specified property cannot be found.
-	 */
 	@SuppressWarnings("serial")
 	@ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "No such property")
 	public static class NoSuchPropertyException extends RuntimeException {
@@ -124,5 +65,4 @@ public class EnvironmentMvcEndpoint extends EndpointMvcAdapter
 		}
 
 	}
-
 }

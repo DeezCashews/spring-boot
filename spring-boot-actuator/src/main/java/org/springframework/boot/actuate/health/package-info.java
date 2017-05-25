@@ -18,3 +18,4 @@
  * Actuator health indicators.
  */
 package org.springframework.boot.actuate.health;
+

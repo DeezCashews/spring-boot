@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,7 @@ package org.springframework.boot.autoconfigure.social;
 
 import java.util.List;
 
-import org.thymeleaf.spring4.resourceresolver.SpringResourceResourceResolver;
-
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -34,7 +32,6 @@ import org.springframework.boot.autoconfigure.thymeleaf.ThymeleafAutoConfigurati
 import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -53,7 +50,9 @@ import org.springframework.social.connect.web.SignInAdapter;
 import org.springframework.social.connect.web.thymeleaf.SpringSocialDialect;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.view.BeanNameViewResolver;
+import org.thymeleaf.spring4.SpringTemplateEngine;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for Spring Social's web connection
@@ -72,29 +71,21 @@ public class SocialWebAutoConfiguration {
 	@Configuration
 	@EnableSocial
 	@ConditionalOnWebApplication
-	protected static class SocialAutoConfigurationAdapter
-			extends SocialConfigurerAdapter {
+	protected static class SocialAutoConfigurationAdapter extends SocialConfigurerAdapter {
 
-		private final List<ConnectInterceptor<?>> connectInterceptors;
+		@Autowired(required = false)
+		private List<ConnectInterceptor<?>> connectInterceptors;
 
-		private final List<DisconnectInterceptor<?>> disconnectInterceptors;
+		@Autowired(required = false)
+		private List<DisconnectInterceptor<?>> disconnectInterceptors;
 
-		private final List<ProviderSignInInterceptor<?>> signInInterceptors;
-
-		public SocialAutoConfigurationAdapter(
-				ObjectProvider<List<ConnectInterceptor<?>>> connectInterceptorsProvider,
-				ObjectProvider<List<DisconnectInterceptor<?>>> disconnectInterceptorsProvider,
-				ObjectProvider<List<ProviderSignInInterceptor<?>>> signInInterceptorsProvider) {
-			this.connectInterceptors = connectInterceptorsProvider.getIfAvailable();
-			this.disconnectInterceptors = disconnectInterceptorsProvider.getIfAvailable();
-			this.signInInterceptors = signInInterceptorsProvider.getIfAvailable();
-		}
+		@Autowired(required = false)
+		private List<ProviderSignInInterceptor<?>> signInInterceptors;
 
 		@Bean
 		@ConditionalOnMissingBean(ConnectController.class)
 		public ConnectController connectController(
-				ConnectionFactoryLocator factoryLocator,
-				ConnectionRepository repository) {
+				ConnectionFactoryLocator factoryLocator, ConnectionRepository repository) {
 			ConnectController controller = new ConnectController(factoryLocator,
 					repository);
 			if (!CollectionUtils.isEmpty(this.connectInterceptors)) {
@@ -107,17 +98,17 @@ public class SocialWebAutoConfiguration {
 		}
 
 		@Bean
-		@ConditionalOnMissingBean
+		@ConditionalOnMissingBean(BeanNameViewResolver.class)
 		@ConditionalOnProperty(prefix = "spring.social", name = "auto-connection-views")
-		public BeanNameViewResolver beanNameViewResolver() {
+		public ViewResolver beanNameViewResolver() {
 			BeanNameViewResolver viewResolver = new BeanNameViewResolver();
-			viewResolver.setOrder(Ordered.HIGHEST_PRECEDENCE);
+			viewResolver.setOrder(Integer.MIN_VALUE);
 			return viewResolver;
 		}
 
 		@Bean
 		@ConditionalOnBean(SignInAdapter.class)
-		@ConditionalOnMissingBean
+		@ConditionalOnMissingBean(ProviderSignInController.class)
 		public ProviderSignInController signInController(
 				ConnectionFactoryLocator factoryLocator,
 				UsersConnectionRepository usersRepository, SignInAdapter signInAdapter) {
@@ -134,7 +125,7 @@ public class SocialWebAutoConfiguration {
 	@Configuration
 	@EnableSocial
 	@ConditionalOnWebApplication
-	@ConditionalOnMissingClass("org.springframework.security.core.context.SecurityContextHolder")
+	@ConditionalOnMissingClass(name = "org.springframework.security.core.context.SecurityContextHolder")
 	protected static class AnonymousUserIdSourceConfig extends SocialConfigurerAdapter {
 
 		@Override
@@ -146,15 +137,14 @@ public class SocialWebAutoConfiguration {
 				}
 			};
 		}
-
 	}
 
 	@Configuration
 	@EnableSocial
 	@ConditionalOnWebApplication
 	@ConditionalOnClass(SecurityContextHolder.class)
-	protected static class AuthenticationUserIdSourceConfig
-			extends SocialConfigurerAdapter {
+	protected static class AuthenticationUserIdSourceConfig extends
+			SocialConfigurerAdapter {
 
 		@Override
 		public UserIdSource getUserIdSource() {
@@ -164,7 +154,7 @@ public class SocialWebAutoConfiguration {
 	}
 
 	@Configuration
-	@ConditionalOnClass(SpringResourceResourceResolver.class)
+	@ConditionalOnClass(SpringTemplateEngine.class)
 	protected static class SpringSocialThymeleafConfig {
 
 		@Bean
@@ -181,11 +171,10 @@ public class SocialWebAutoConfiguration {
 		public String getUserId() {
 			SecurityContext context = SecurityContextHolder.getContext();
 			Authentication authentication = context.getAuthentication();
-			Assert.state(authentication != null,
-					"Unable to get a " + "ConnectionRepository: no user signed in");
+			Assert.state(authentication != null, "Unable to get a "
+					+ "ConnectionRepository: no user signed in");
 			return authentication.getName();
 		}
 
 	}
-
 }

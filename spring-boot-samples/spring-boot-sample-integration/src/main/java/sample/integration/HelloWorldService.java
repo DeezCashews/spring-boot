@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,14 @@
 
 package sample.integration;
 
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 public class HelloWorldService {
 
-	private final ServiceProperties configuration;
-
-	public HelloWorldService(ServiceProperties configuration) {
-		this.configuration = configuration;
-	}
+	@Autowired
+	private ServiceProperties configuration;
 
 	public String getHelloMessage(String name) {
 		return this.configuration.getGreeting() + " " + name;

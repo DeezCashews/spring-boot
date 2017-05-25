@@ -5,10 +5,10 @@
 		<!-- Your own application should inherit from spring-boot-starter-parent -->
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-samples</artifactId>
-		<version>1.5.4.BUILD-SNAPSHOT</version>
+		<version>1.2.2.BUILD-SNAPSHOT</version>
 	</parent>
 	<artifactId>spring-boot-sample-web-mustache</artifactId>
-	<name>Spring Boot Web Mustache Sample</name>
+	<name>spring-boot-sample-web-mustache</name>
 	<description>Spring Boot Web Mustache Sample</description>
 	<url>http://projects.spring.io/spring-boot/</url>
 	<organization>
@@ -20,12 +20,10 @@
 		<m2eclipse.wtp.contextRoot>/</m2eclipse.wtp.contextRoot>
 	</properties>
 	<dependencies>
-		<!-- Compile -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mustache</artifactId>
 		</dependency>
-		<!-- Test -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

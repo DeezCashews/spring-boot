@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,43 +16,62 @@
 
 package org.springframework.boot.autoconfigure.groovy.template;
 
-import org.springframework.boot.autoconfigure.template.AbstractTemplateViewResolverProperties;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.boot.autoconfigure.template.AbstractViewResolverProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * {@link ConfigurationProperties} for configuring Groovy templates.
  *
  * @author Dave Syer
- * @author Marten Deinum
  * @since 1.1.0
  */
-@ConfigurationProperties(prefix = "spring.groovy.template", ignoreUnknownFields = true)
-public class GroovyTemplateProperties extends AbstractTemplateViewResolverProperties {
+@ConfigurationProperties(prefix = "spring.groovy.template", ignoreUnknownFields = false)
+public class GroovyTemplateProperties extends AbstractViewResolverProperties {
 
-	public static final String DEFAULT_RESOURCE_LOADER_PATH = "classpath:/templates/";
-
-	public static final String DEFAULT_PREFIX = "";
+	public static final String DEFAULT_PREFIX = "classpath:/templates/";
 
 	public static final String DEFAULT_SUFFIX = ".tpl";
 
-	public static final String DEFAULT_REQUEST_CONTEXT_ATTRIBUTE = "spring";
+	/**
+	 * Prefix that gets prepended to view names when building a URL.
+	 */
+	private String prefix = DEFAULT_PREFIX;
 
 	/**
-	 * Template path.
+	 * Suffix that gets appended to view names when building a URL.
 	 */
-	private String resourceLoaderPath = DEFAULT_RESOURCE_LOADER_PATH;
+	private String suffix = DEFAULT_SUFFIX;
 
-	public GroovyTemplateProperties() {
-		super(DEFAULT_PREFIX, DEFAULT_SUFFIX);
-		setRequestContextAttribute(DEFAULT_REQUEST_CONTEXT_ATTRIBUTE);
+	/**
+	 * Configuration to pass to TemplateConfiguration.
+	 */
+	private Map<String, Object> configuration = new HashMap<String, Object>();
+
+	public String getPrefix() {
+		return this.prefix;
 	}
 
-	public String getResourceLoaderPath() {
-		return this.resourceLoaderPath;
+	public void setPrefix(String prefix) {
+		this.prefix = prefix;
 	}
 
-	public void setResourceLoaderPath(String resourceLoaderPath) {
-		this.resourceLoaderPath = resourceLoaderPath;
+	public String getSuffix() {
+		return this.suffix;
+	}
+
+	public void setSuffix(String suffix) {
+		this.suffix = suffix;
+	}
+
+	public void setConfiguration(Map<String, Object> configuration) {
+		this.configuration = configuration;
+	}
+
+	public Map<String, Object> getConfiguration() {
+		return this.configuration;
 	}
 
 }

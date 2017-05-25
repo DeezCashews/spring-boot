@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +27,9 @@ import java.io.IOException;
 public interface LibraryCallback {
 
 	/**
-	 * Callback for a single library backed by a {@link File}.
+	 * Callback to for a single library backed by a {@link File}.
 	 * @param library the library
-	 * @throws IOException if the operation fails
+	 * @throws IOException
 	 */
 	void library(Library library) throws IOException;
 

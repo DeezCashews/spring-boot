@@ -21,9 +21,9 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-import sample.jpa.domain.Note;
-
 import org.springframework.stereotype.Repository;
+
+import sample.jpa.domain.Note;
 
 @Repository
 class JpaNoteRepository implements NoteRepository {

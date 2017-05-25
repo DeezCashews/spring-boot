@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.boot.liquibase;
 
 import liquibase.logging.LogLevel;
+
 import org.apache.commons.logging.Log;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,7 +31,6 @@ import static org.mockito.Mockito.verify;
  * Tests for {@link CommonsLoggingLiquibaseLogger}.
  *
  * @author Phillip Webb
- * @author Andy Wilkinson
  */
 public class CommonsLoggingLiquibaseLoggerTests {
 
@@ -71,6 +71,14 @@ public class CommonsLoggingLiquibaseLoggerTests {
 	}
 
 	@Test
+	public void debugBelowLevel() {
+		this.logger.setLogLevel(LogLevel.INFO);
+		given(this.delegate.isDebugEnabled()).willReturn(true);
+		this.logger.debug("debug", this.ex);
+		verify(this.delegate, never()).debug("debug", this.ex);
+	}
+
+	@Test
 	public void info() {
 		this.logger.setLogLevel(LogLevel.INFO);
 		given(this.delegate.isInfoEnabled()).willReturn(true);
@@ -92,6 +100,14 @@ public class CommonsLoggingLiquibaseLoggerTests {
 		given(this.delegate.isInfoEnabled()).willReturn(false);
 		this.logger.info("info");
 		verify(this.delegate, never()).info("info");
+	}
+
+	@Test
+	public void infoBelowLevel() {
+		this.logger.setLogLevel(LogLevel.WARNING);
+		given(this.delegate.isInfoEnabled()).willReturn(true);
+		this.logger.info("info", this.ex);
+		verify(this.delegate, never()).info("info", this.ex);
 	}
 
 	@Test
@@ -119,6 +135,14 @@ public class CommonsLoggingLiquibaseLoggerTests {
 	}
 
 	@Test
+	public void warningBelowLevel() {
+		this.logger.setLogLevel(LogLevel.SEVERE);
+		given(this.delegate.isWarnEnabled()).willReturn(true);
+		this.logger.warning("warning", this.ex);
+		verify(this.delegate, never()).warn("warning", this.ex);
+	}
+
+	@Test
 	public void severe() {
 		this.logger.setLogLevel(LogLevel.SEVERE);
 		given(this.delegate.isErrorEnabled()).willReturn(true);
@@ -142,8 +166,15 @@ public class CommonsLoggingLiquibaseLoggerTests {
 		verify(this.delegate, never()).error("severe");
 	}
 
-	private class MockCommonsLoggingLiquibaseLogger
-			extends CommonsLoggingLiquibaseLogger {
+	@Test
+	public void severeBelowLevel() {
+		this.logger.setLogLevel(LogLevel.OFF);
+		given(this.delegate.isErrorEnabled()).willReturn(true);
+		this.logger.severe("severe", this.ex);
+		verify(this.delegate, never()).error("severe", this.ex);
+	}
+
+	private class MockCommonsLoggingLiquibaseLogger extends CommonsLoggingLiquibaseLogger {
 
 		@Override
 		protected Log createLogger(String name) {

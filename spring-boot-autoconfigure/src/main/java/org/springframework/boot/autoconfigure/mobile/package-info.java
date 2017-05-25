@@ -18,3 +18,4 @@
  * Auto-configuration for Spring Mobile.
  */
 package org.springframework.boot.autoconfigure.mobile;
+

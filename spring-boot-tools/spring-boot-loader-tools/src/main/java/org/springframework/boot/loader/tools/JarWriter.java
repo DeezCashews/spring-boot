@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +27,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -42,8 +39,6 @@ import java.util.jar.Manifest;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 
-import org.springframework.lang.UsesJava7;
-
 /**
  * Writes JAR content, ensuring valid directory entries are always create and duplicate
  * items are ignored.
@@ -51,7 +46,7 @@ import org.springframework.lang.UsesJava7;
  * @author Phillip Webb
  * @author Andy Wilkinson
  */
-public class JarWriter implements LoaderClassesWriter {
+public class JarWriter {
 
 	private static final String NESTED_LOADER_JAR = "META-INF/loader/spring-boot-loader.jar";
 
@@ -64,48 +59,17 @@ public class JarWriter implements LoaderClassesWriter {
 	/**
 	 * Create a new {@link JarWriter} instance.
 	 * @param file the file to write
-	 * @throws IOException if the file cannot be opened
-	 * @throws FileNotFoundException if the file cannot be found
+	 * @throws IOException
+	 * @throws FileNotFoundException
 	 */
 	public JarWriter(File file) throws FileNotFoundException, IOException {
-		this(file, null);
-	}
-
-	/**
-	 * Create a new {@link JarWriter} instance.
-	 * @param file the file to write
-	 * @param launchScript an optional launch script to prepend to the front of the jar
-	 * @throws IOException if the file cannot be opened
-	 * @throws FileNotFoundException if the file cannot be found
-	 */
-	public JarWriter(File file, LaunchScript launchScript)
-			throws FileNotFoundException, IOException {
-		FileOutputStream fileOutputStream = new FileOutputStream(file);
-		if (launchScript != null) {
-			fileOutputStream.write(launchScript.toByteArray());
-			setExecutableFilePermission(file);
-		}
-		this.jarOutput = new JarOutputStream(fileOutputStream);
-	}
-
-	@UsesJava7
-	private void setExecutableFilePermission(File file) {
-		try {
-			Path path = file.toPath();
-			Set<PosixFilePermission> permissions = new HashSet<PosixFilePermission>(
-					Files.getPosixFilePermissions(path));
-			permissions.add(PosixFilePermission.OWNER_EXECUTE);
-			Files.setPosixFilePermissions(path, permissions);
-		}
-		catch (Throwable ex) {
-			// Ignore and continue creating the jar
-		}
+		this.jarOutput = new JarOutputStream(new FileOutputStream(file));
 	}
 
 	/**
 	 * Write the specified manifest.
 	 * @param manifest the manifest to write
-	 * @throws IOException of the manifest cannot be written
+	 * @throws IOException
 	 */
 	public void writeManifest(final Manifest manifest) throws IOException {
 		JarEntry entry = new JarEntry("META-INF/MANIFEST.MF");
@@ -120,14 +84,9 @@ public class JarWriter implements LoaderClassesWriter {
 	/**
 	 * Write all entries from the specified jar file.
 	 * @param jarFile the source jar file
-	 * @throws IOException if the entries cannot be written
+	 * @throws IOException
 	 */
 	public void writeEntries(JarFile jarFile) throws IOException {
-		this.writeEntries(jarFile, new IdentityEntryTransformer());
-	}
-
-	void writeEntries(JarFile jarFile, EntryTransformer entryTransformer)
-			throws IOException {
 		Enumeration<JarEntry> entries = jarFile.entries();
 		while (entries.hasMoreElements()) {
 			JarEntry entry = entries.nextElement();
@@ -141,10 +100,7 @@ public class JarWriter implements LoaderClassesWriter {
 							jarFile.getInputStream(entry));
 				}
 				EntryWriter entryWriter = new InputStreamEntryWriter(inputStream, true);
-				JarEntry transformedEntry = entryTransformer.transform(entry);
-				if (transformedEntry != null) {
-					writeEntry(transformedEntry, entryWriter);
-				}
+				writeEntry(entry, entryWriter);
 			}
 			finally {
 				inputStream.close();
@@ -158,7 +114,6 @@ public class JarWriter implements LoaderClassesWriter {
 	 * @param inputStream The stream from which the entry's data can be read
 	 * @throws IOException if the write fails
 	 */
-	@Override
 	public void writeEntry(String entryName, InputStream inputStream) throws IOException {
 		JarEntry entry = new JarEntry(entryName);
 		writeEntry(entry, new InputStreamEntryWriter(inputStream, true));
@@ -174,7 +129,6 @@ public class JarWriter implements LoaderClassesWriter {
 			throws IOException {
 		File file = library.getFile();
 		JarEntry entry = new JarEntry(destination + library.getName());
-		entry.setTime(getNestedLibraryTime(file));
 		if (library.isUnpackRequired()) {
 			entry.setComment("UNPACK:" + FileUtils.sha1Hash(file));
 		}
@@ -182,48 +136,14 @@ public class JarWriter implements LoaderClassesWriter {
 		writeEntry(entry, new InputStreamEntryWriter(new FileInputStream(file), true));
 	}
 
-	private long getNestedLibraryTime(File file) {
-		try {
-			JarFile jarFile = new JarFile(file);
-			try {
-				Enumeration<JarEntry> entries = jarFile.entries();
-				while (entries.hasMoreElements()) {
-					JarEntry entry = entries.nextElement();
-					if (!entry.isDirectory()) {
-						return entry.getTime();
-					}
-				}
-			}
-			finally {
-				jarFile.close();
-			}
-		}
-		catch (Exception ex) {
-			// Ignore and just use the source file timestamp
-		}
-		return file.lastModified();
-	}
-
 	/**
 	 * Write the required spring-boot-loader classes to the JAR.
-	 * @throws IOException if the classes cannot be written
+	 * @throws IOException
 	 */
-	@Override
 	public void writeLoaderClasses() throws IOException {
-		writeLoaderClasses(NESTED_LOADER_JAR);
-	}
-
-	/**
-	 * Write the required spring-boot-loader classes to the JAR.
-	 * @param loaderJarResourceName the name of the resource containing the loader classes
-	 * to be written
-	 * @throws IOException if the classes cannot be written
-	 */
-	@Override
-	public void writeLoaderClasses(String loaderJarResourceName) throws IOException {
-		URL loaderJar = getClass().getClassLoader().getResource(loaderJarResourceName);
-		JarInputStream inputStream = new JarInputStream(
-				new BufferedInputStream(loaderJar.openStream()));
+		URL loaderJar = getClass().getClassLoader().getResource(NESTED_LOADER_JAR);
+		JarInputStream inputStream = new JarInputStream(new BufferedInputStream(
+				loaderJar.openStream()));
 		JarEntry entry;
 		while ((entry = inputStream.getNextJarEntry()) != null) {
 			if (entry.getName().endsWith(".class")) {
@@ -235,7 +155,7 @@ public class JarWriter implements LoaderClassesWriter {
 
 	/**
 	 * Close the writer.
-	 * @throws IOException if the file cannot be closed
+	 * @throws IOException
 	 */
 	public void close() throws IOException {
 		this.jarOutput.close();
@@ -246,7 +166,7 @@ public class JarWriter implements LoaderClassesWriter {
 	 * delegate to this one.
 	 * @param entry the entry to write
 	 * @param entryWriter the entry writer or {@code null} if there is no content
-	 * @throws IOException in case of I/O errors
+	 * @throws IOException
 	 */
 	private void writeEntry(JarEntry entry, EntryWriter entryWriter) throws IOException {
 		String parent = entry.getName();
@@ -272,12 +192,12 @@ public class JarWriter implements LoaderClassesWriter {
 	/**
 	 * Interface used to write jar entry date.
 	 */
-	private interface EntryWriter {
+	private static interface EntryWriter {
 
 		/**
-		 * Write entry data to the specified output stream.
+		 * Write entry data to the specified output stream
 		 * @param outputStream the destination for the data
-		 * @throws IOException in case of I/O errors
+		 * @throws IOException
 		 */
 		void write(OutputStream outputStream) throws IOException;
 
@@ -292,7 +212,7 @@ public class JarWriter implements LoaderClassesWriter {
 
 		private final boolean close;
 
-		InputStreamEntryWriter(InputStream inputStream, boolean close) {
+		public InputStreamEntryWriter(InputStream inputStream, boolean close) {
 			this.inputStream = inputStream;
 			this.close = close;
 		}
@@ -347,8 +267,8 @@ public class JarWriter implements LoaderClassesWriter {
 
 		@Override
 		public int read(byte[] b, int off, int len) throws IOException {
-			int read = (this.headerStream == null ? -1
-					: this.headerStream.read(b, off, len));
+			int read = (this.headerStream == null ? -1 : this.headerStream.read(b, off,
+					len));
 			if (read != -1) {
 				this.headerStream = null;
 				return read;
@@ -359,11 +279,10 @@ public class JarWriter implements LoaderClassesWriter {
 		public boolean hasZipHeader() {
 			return Arrays.equals(this.header, ZIP_HEADER);
 		}
-
 	}
 
 	/**
-	 * Data holder for CRC and Size.
+	 * Data holder for CRC and Size
 	 */
 	private static class CrcAndSize {
 
@@ -371,7 +290,7 @@ public class JarWriter implements LoaderClassesWriter {
 
 		private long size;
 
-		CrcAndSize(File file) throws IOException {
+		public CrcAndSize(File file) throws IOException {
 			FileInputStream inputStream = new FileInputStream(file);
 			try {
 				load(inputStream);
@@ -381,7 +300,7 @@ public class JarWriter implements LoaderClassesWriter {
 			}
 		}
 
-		CrcAndSize(InputStream inputStream) throws IOException {
+		public CrcAndSize(InputStream inputStream) throws IOException {
 			load(inputStream);
 		}
 
@@ -400,29 +319,6 @@ public class JarWriter implements LoaderClassesWriter {
 			entry.setCrc(this.crc.getValue());
 			entry.setMethod(ZipEntry.STORED);
 		}
-
-	}
-
-	/**
-	 * An {@code EntryTransformer} enables the transformation of {@link JarEntry jar
-	 * entries} during the writing process.
-	 */
-	interface EntryTransformer {
-
-		JarEntry transform(JarEntry jarEntry);
-
-	}
-
-	/**
-	 * An {@code EntryTransformer} that returns the entry unchanged.
-	 */
-	private static final class IdentityEntryTransformer implements EntryTransformer {
-
-		@Override
-		public JarEntry transform(JarEntry jarEntry) {
-			return jarEntry;
-		}
-
 	}
 
 }

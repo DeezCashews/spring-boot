@@ -19,7 +19,6 @@ package org.springframework.boot.autoconfigure.websocket;
 import java.lang.reflect.Constructor;
 
 import org.apache.catalina.Context;
-
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.context.embedded.tomcat.TomcatContextCustomizer;
 import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
@@ -34,8 +33,8 @@ import org.springframework.util.ReflectionUtils;
  * @author Andy Wilkinson
  * @since 1.2.0
  */
-public class TomcatWebSocketContainerCustomizer
-		extends WebSocketContainerCustomizer<TomcatEmbeddedServletContainerFactory> {
+public class TomcatWebSocketContainerCustomizer extends
+		WebSocketContainerCustomizer<TomcatEmbeddedServletContainerFactory> {
 
 	private static final String TOMCAT_7_LISTENER_TYPE = "org.apache.catalina.deploy.ApplicationListener";
 
@@ -80,8 +79,8 @@ public class TomcatWebSocketContainerCustomizer
 
 		}
 		else {
-			Constructor<?> constructor = ClassUtils
-					.getConstructorIfAvailable(listenerType, String.class, boolean.class);
+			Constructor<?> constructor = ClassUtils.getConstructorIfAvailable(
+					listenerType, String.class, boolean.class);
 			Object instance = BeanUtils.instantiateClass(constructor, WS_LISTENER, false);
 			ReflectionUtils.invokeMethod(ClassUtils.getMethod(contextClass,
 					"addApplicationListener", listenerType), context, instance);

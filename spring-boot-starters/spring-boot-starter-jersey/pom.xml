@@ -4,12 +4,11 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starters</artifactId>
-		<version>1.5.4.BUILD-SNAPSHOT</version>
+		<version>1.2.2.BUILD-SNAPSHOT</version>
 	</parent>
 	<artifactId>spring-boot-starter-jersey</artifactId>
 	<name>Spring Boot Jersey Starter</name>
-	<description>Starter for building RESTful web applications using JAX-RS and Jersey.
-		An alternative to spring-boot-starter-web</description>
+	<description>Spring Boot Jersey Starter</description>
 	<url>http://projects.spring.io/spring-boot/</url>
 	<organization>
 		<name>Pivotal Software, Inc.</name>
@@ -28,12 +27,22 @@
 			<artifactId>spring-boot-starter-tomcat</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-validation</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-validator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-core</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -68,39 +77,10 @@
 		<dependency>
 			<groupId>org.glassfish.jersey.ext</groupId>
 			<artifactId>jersey-spring3</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>org.jvnet</groupId>
-  					<artifactId>tiger-types</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
 		</dependency>
 	</dependencies>
-		<build>
-		<plugins>
-			<plugin>
-				<groupId>org.basepom.maven</groupId>
-				<artifactId>duplicate-finder-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>duplicate-dependencies</id>
-						<phase>validate</phase>
-						<goals>
-							<goal>check</goal>
-						</goals>
-						<configuration>
-							<ignoredClassPatterns>
-								<ignoredClassPattern>org.aopalliance.*</ignoredClassPattern>
-								<ignoredClassPattern>javax.annotation.*</ignoredClassPattern>
-							</ignoredClassPatterns>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
 </project>

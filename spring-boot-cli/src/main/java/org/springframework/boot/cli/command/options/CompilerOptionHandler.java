@@ -16,13 +16,13 @@
 
 package org.springframework.boot.cli.command.options;
 
-import java.util.Arrays;
-
 import joptsimple.OptionSpec;
+
+import static java.util.Arrays.asList;
 
 /**
  * An {@link OptionHandler} for commands that result in the compilation of one or more
- * Groovy scripts.
+ * Groovy scripts
  *
  * @author Andy Wilkinson
  * @author Dave Syer
@@ -45,8 +45,8 @@ public class CompilerOptionHandler extends OptionHandler {
 				"Do not attempt to guess dependencies");
 		this.autoconfigureOption = option("autoconfigure",
 				"Add autoconfigure compiler transformations").withOptionalArg()
-						.ofType(Boolean.class).defaultsTo(true);
-		this.classpathOption = option(Arrays.asList("classpath", "cp"),
+				.ofType(Boolean.class).defaultsTo(true);
+		this.classpathOption = option(asList("classpath", "cp"),
 				"Additional classpath entries").withRequiredArg();
 		doOptions();
 	}

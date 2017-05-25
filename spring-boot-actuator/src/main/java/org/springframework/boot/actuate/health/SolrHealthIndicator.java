@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,26 @@
 
 package org.springframework.boot.actuate.health;
 
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.request.CoreAdminRequest;
-import org.apache.solr.client.solrj.response.CoreAdminResponse;
-import org.apache.solr.common.params.CoreAdminParams;
+import org.apache.solr.client.solrj.SolrServer;
 
 /**
  * {@link HealthIndicator} for Apache Solr.
  *
  * @author Andy Wilkinson
- * @author Stephane Nicoll
  * @since 1.1.0
  */
 public class SolrHealthIndicator extends AbstractHealthIndicator {
 
-	private final SolrClient solrClient;
+	private final SolrServer solrServer;
 
-	public SolrHealthIndicator(SolrClient solrClient) {
-		this.solrClient = solrClient;
+	public SolrHealthIndicator(SolrServer solrServer) {
+		this.solrServer = solrServer;
 	}
 
 	@Override
 	protected void doHealthCheck(Health.Builder builder) throws Exception {
-		CoreAdminRequest request = new CoreAdminRequest();
-		request.setAction(CoreAdminParams.CoreAdminAction.STATUS);
-		CoreAdminResponse response = request.process(this.solrClient);
-		int statusCode = response.getStatus();
-		Status status = (statusCode == 0 ? Status.UP : Status.DOWN);
-		builder.status(status).withDetail("solrStatus",
-				(statusCode == 0 ? "OK" : statusCode));
+		Object status = this.solrServer.ping().getResponse().get("status");
+		builder.up().withDetail("solrStatus", status);
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.springframework.boot.autoconfigure.social;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -37,6 +38,7 @@ import org.springframework.social.connect.ConnectionRepository;
 import org.springframework.social.connect.web.GenericConnectionStatusView;
 import org.springframework.social.linkedin.api.LinkedIn;
 import org.springframework.social.linkedin.connect.LinkedInConnectionFactory;
+import org.springframework.web.servlet.View;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for Spring Social connectivity with
@@ -58,11 +60,8 @@ public class LinkedInAutoConfiguration {
 	@ConditionalOnWebApplication
 	protected static class LinkedInConfigurerAdapter extends SocialAutoConfigurerAdapter {
 
-		private final LinkedInProperties properties;
-
-		protected LinkedInConfigurerAdapter(LinkedInProperties properties) {
-			this.properties = properties;
-		}
+		@Autowired
+		private LinkedInProperties properties;
 
 		@Bean
 		@ConditionalOnMissingBean(LinkedIn.class)
@@ -75,7 +74,7 @@ public class LinkedInAutoConfiguration {
 
 		@Bean(name = { "connect/linkedinConnect", "connect/linkedinConnected" })
 		@ConditionalOnProperty(prefix = "spring.social", name = "auto-connection-views")
-		public GenericConnectionStatusView linkedInConnectView() {
+		public View linkedInConnectView() {
 			return new GenericConnectionStatusView("linkedin", "LinkedIn");
 		}
 
@@ -84,7 +83,6 @@ public class LinkedInAutoConfiguration {
 			return new LinkedInConnectionFactory(this.properties.getAppId(),
 					this.properties.getAppSecret());
 		}
-
 	}
 
 }

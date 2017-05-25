@@ -31,12 +31,12 @@ class ReflectionWrapper {
 
 	private final Object instance;
 
-	ReflectionWrapper(Object instance) {
+	public ReflectionWrapper(Object instance) {
 		this.type = instance.getClass();
 		this.instance = instance;
 	}
 
-	ReflectionWrapper(String type, Object instance) {
+	public ReflectionWrapper(String type, Object instance) {
 		this.type = findClass(instance.getClass().getClassLoader(), type);
 		this.instance = instance;
 	}

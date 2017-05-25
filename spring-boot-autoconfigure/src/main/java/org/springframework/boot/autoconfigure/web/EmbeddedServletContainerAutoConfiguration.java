@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,41 +16,39 @@
 
 package org.springframework.boot.autoconfigure.web;
 
+import io.undertow.Undertow;
+
 import javax.servlet.Servlet;
 
-import io.undertow.Undertow;
 import org.apache.catalina.startup.Tomcat;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.Loader;
-import org.eclipse.jetty.webapp.WebAppContext;
-import org.xnio.SslClientAuthMode;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.RootBeanDefinition;
-import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.SearchStrategy;
-import org.springframework.boot.autoconfigure.web.EmbeddedServletContainerAutoConfiguration.BeanPostProcessorsRegistrar;
+import org.springframework.boot.autoconfigure.web.EmbeddedServletContainerAutoConfiguration.EmbeddedServletContainerCustomizerBeanPostProcessorRegistrar;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerCustomizerBeanPostProcessor;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.jetty.JettyEmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.undertow.UndertowEmbeddedServletContainerFactory;
-import org.springframework.boot.web.servlet.ErrorPageRegistrarBeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.ObjectUtils;
+import org.xnio.SslClientAuthMode;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for an embedded servlet containers.
@@ -58,16 +56,15 @@ import org.springframework.util.ObjectUtils;
  * @author Phillip Webb
  * @author Dave Syer
  * @author Ivan Sopov
- * @author Stephane Nicoll
  */
-@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @Configuration
 @ConditionalOnWebApplication
-@Import(BeanPostProcessorsRegistrar.class)
+@Import(EmbeddedServletContainerCustomizerBeanPostProcessorRegistrar.class)
 public class EmbeddedServletContainerAutoConfiguration {
 
 	/**
-	 * Nested configuration if Tomcat is being used.
+	 * Nested configuration for if Tomcat is being used.
 	 */
 	@Configuration
 	@ConditionalOnClass({ Servlet.class, Tomcat.class })
@@ -85,8 +82,7 @@ public class EmbeddedServletContainerAutoConfiguration {
 	 * Nested configuration if Jetty is being used.
 	 */
 	@Configuration
-	@ConditionalOnClass({ Servlet.class, Server.class, Loader.class,
-			WebAppContext.class })
+	@ConditionalOnClass({ Servlet.class, Server.class, Loader.class })
 	@ConditionalOnMissingBean(value = EmbeddedServletContainerFactory.class, search = SearchStrategy.CURRENT)
 	public static class EmbeddedJetty {
 
@@ -116,7 +112,7 @@ public class EmbeddedServletContainerAutoConfiguration {
 	 * Registers a {@link EmbeddedServletContainerCustomizerBeanPostProcessor}. Registered
 	 * via {@link ImportBeanDefinitionRegistrar} for early registration.
 	 */
-	public static class BeanPostProcessorsRegistrar
+	public static class EmbeddedServletContainerCustomizerBeanPostProcessorRegistrar
 			implements ImportBeanDefinitionRegistrar, BeanFactoryAware {
 
 		private ConfigurableListableBeanFactory beanFactory;
@@ -134,21 +130,14 @@ public class EmbeddedServletContainerAutoConfiguration {
 			if (this.beanFactory == null) {
 				return;
 			}
-			registerSyntheticBeanIfMissing(registry,
-					"embeddedServletContainerCustomizerBeanPostProcessor",
-					EmbeddedServletContainerCustomizerBeanPostProcessor.class);
-			registerSyntheticBeanIfMissing(registry,
-					"errorPageRegistrarBeanPostProcessor",
-					ErrorPageRegistrarBeanPostProcessor.class);
-		}
+			if (ObjectUtils.isEmpty(this.beanFactory.getBeanNamesForType(
+					EmbeddedServletContainerCustomizerBeanPostProcessor.class, true,
+					false))) {
+				registry.registerBeanDefinition(
+						"embeddedServletContainerCustomizerBeanPostProcessor",
+						new RootBeanDefinition(
+								EmbeddedServletContainerCustomizerBeanPostProcessor.class));
 
-		private void registerSyntheticBeanIfMissing(BeanDefinitionRegistry registry,
-				String name, Class<?> beanClass) {
-			if (ObjectUtils.isEmpty(
-					this.beanFactory.getBeanNamesForType(beanClass, true, false))) {
-				RootBeanDefinition beanDefinition = new RootBeanDefinition(beanClass);
-				beanDefinition.setSynthetic(true);
-				registry.registerBeanDefinition(name, beanDefinition);
 			}
 		}
 

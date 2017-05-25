@@ -36,16 +36,14 @@ class Tree extends ReflectionWrapper {
 	private final Method GET_CLASS_TREE_MEMBERS = findMethod(
 			findClass("com.sun.source.tree.ClassTree"), "getMembers");
 
-	Tree(Object instance) {
+	public Tree(Object instance) {
 		super("com.sun.source.tree.Tree", instance);
 	}
 
 	public void accept(TreeVisitor visitor) throws Exception {
-		this.acceptMethod.invoke(getInstance(),
-				Proxy.newProxyInstance(getInstance().getClass().getClassLoader(),
-						new Class<?>[] { this.treeVisitorType },
-						new TreeVisitorInvocationHandler(visitor)),
-				0);
+		this.acceptMethod.invoke(getInstance(), Proxy.newProxyInstance(getInstance()
+				.getClass().getClassLoader(), new Class<?>[] { this.treeVisitorType },
+				new TreeVisitorInvocationHandler(visitor)), 0);
 	}
 
 	/**
@@ -55,14 +53,13 @@ class Tree extends ReflectionWrapper {
 
 		private TreeVisitor treeVisitor;
 
-		TreeVisitorInvocationHandler(TreeVisitor treeVisitor) {
+		public TreeVisitorInvocationHandler(TreeVisitor treeVisitor) {
 			this.treeVisitor = treeVisitor;
 		}
 
 		@Override
 		@SuppressWarnings("rawtypes")
-		public Object invoke(Object proxy, Method method, Object[] args)
-				throws Throwable {
+		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 			if (method.getName().equals("visitClass")) {
 				if ((Integer) args[1] == 0) {
 					Iterable members = (Iterable) Tree.this.GET_CLASS_TREE_MEMBERS

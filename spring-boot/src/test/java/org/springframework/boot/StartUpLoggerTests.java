@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package org.springframework.boot;
 import org.apache.commons.logging.impl.SimpleLog;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link StartupInfoLogger}.
@@ -41,8 +41,8 @@ public class StartUpLoggerTests {
 	@Test
 	public void sourceClassIncluded() {
 		new StartupInfoLogger(getClass()).logStarting(this.log);
-		assertThat(this.output.toString())
-				.contains("Starting " + getClass().getSimpleName());
+		assertTrue("Wrong output: " + this.output,
+				this.output.toString().contains("Starting " + getClass().getSimpleName()));
 	}
 
 }

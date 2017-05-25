@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,15 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
 import org.springframework.util.FileSystemUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
- * Tests for {@link FileUtils}.
+ * Tests fir {@link FileUtils}.
  *
  * @author Dave Syer
  * @author Phillip Webb
@@ -62,31 +64,31 @@ public class FileUtilsTests {
 		new File(this.originDirectory, "logback.xml").createNewFile();
 		FileUtils.removeDuplicatesFromOutputDirectory(this.outputDirectory,
 				this.originDirectory);
-		assertThat(file.exists()).isFalse();
+		assertFalse(file.exists());
 	}
 
 	@Test
 	public void nestedDuplicateFile() throws IOException {
-		assertThat(new File(this.outputDirectory, "sub").mkdirs()).isTrue();
-		assertThat(new File(this.originDirectory, "sub").mkdirs()).isTrue();
+		assertTrue(new File(this.outputDirectory, "sub").mkdirs());
+		assertTrue(new File(this.originDirectory, "sub").mkdirs());
 		File file = new File(this.outputDirectory, "sub/logback.xml");
 		file.createNewFile();
 		new File(this.originDirectory, "sub/logback.xml").createNewFile();
 		FileUtils.removeDuplicatesFromOutputDirectory(this.outputDirectory,
 				this.originDirectory);
-		assertThat(file.exists()).isFalse();
+		assertFalse(file.exists());
 	}
 
 	@Test
 	public void nestedNonDuplicateFile() throws IOException {
-		assertThat(new File(this.outputDirectory, "sub").mkdirs()).isTrue();
-		assertThat(new File(this.originDirectory, "sub").mkdirs()).isTrue();
+		assertTrue(new File(this.outputDirectory, "sub").mkdirs());
+		assertTrue(new File(this.originDirectory, "sub").mkdirs());
 		File file = new File(this.outputDirectory, "sub/logback.xml");
 		file.createNewFile();
 		new File(this.originDirectory, "sub/different.xml").createNewFile();
 		FileUtils.removeDuplicatesFromOutputDirectory(this.outputDirectory,
 				this.originDirectory);
-		assertThat(file.exists()).isTrue();
+		assertTrue(file.exists());
 	}
 
 	@Test
@@ -96,7 +98,7 @@ public class FileUtilsTests {
 		new File(this.originDirectory, "different.xml").createNewFile();
 		FileUtils.removeDuplicatesFromOutputDirectory(this.outputDirectory,
 				this.originDirectory);
-		assertThat(file.exists()).isTrue();
+		assertTrue(file.exists());
 	}
 
 	@Test
@@ -109,8 +111,8 @@ public class FileUtilsTests {
 		finally {
 			outputStream.close();
 		}
-		assertThat(FileUtils.sha1Hash(file))
-				.isEqualTo("7037807198c22a7d2b0807371d763779a84fdfcf");
+		assertThat(FileUtils.sha1Hash(file),
+				equalTo("7037807198c22a7d2b0807371d763779a84fdfcf"));
 	}
 
 }

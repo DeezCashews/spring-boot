@@ -19,16 +19,16 @@ package org.springframework.boot.autoconfigure.mustache;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.samskivert.mustache.DefaultCollector;
-import com.samskivert.mustache.Mustache.Collector;
-import com.samskivert.mustache.Mustache.VariableFetcher;
-
 import org.springframework.boot.bind.PropertySourcesPropertyValues;
 import org.springframework.boot.bind.RelaxedDataBinder;
-import org.springframework.boot.bind.RelaxedPropertyResolver;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
+
+import com.samskivert.mustache.DefaultCollector;
+import com.samskivert.mustache.Mustache;
+import com.samskivert.mustache.Mustache.Collector;
+import com.samskivert.mustache.Mustache.VariableFetcher;
 
 /**
  * Mustache {@link Collector} to expose properties from the Spring {@link Environment}.
@@ -36,45 +36,49 @@ import org.springframework.core.env.Environment;
  * @author Dave Syer
  * @since 1.2.2
  */
-public class MustacheEnvironmentCollector extends DefaultCollector
-		implements EnvironmentAware {
+public class MustacheEnvironmentCollector extends DefaultCollector implements
+		EnvironmentAware {
 
 	private ConfigurableEnvironment environment;
 
 	private Map<String, Object> target;
 
-	private RelaxedPropertyResolver propertyResolver;
-
-	private final VariableFetcher propertyFetcher = new PropertyVariableFetcher();
-
 	@Override
 	public void setEnvironment(Environment environment) {
 		this.environment = (ConfigurableEnvironment) environment;
 		this.target = new HashMap<String, Object>();
-		new RelaxedDataBinder(this.target).bind(
-				new PropertySourcesPropertyValues(this.environment.getPropertySources()));
-		this.propertyResolver = new RelaxedPropertyResolver(environment);
+		new RelaxedDataBinder(this.target).bind(new PropertySourcesPropertyValues(
+				this.environment.getPropertySources()));
 	}
 
 	@Override
-	public VariableFetcher createFetcher(Object ctx, String name) {
+	public Mustache.VariableFetcher createFetcher(Object ctx, String name) {
 		VariableFetcher fetcher = super.createFetcher(ctx, name);
 		if (fetcher != null) {
 			return fetcher;
 		}
-		if (this.propertyResolver.containsProperty(name)) {
-			return this.propertyFetcher;
+		if (this.environment.containsProperty(name)) {
+			return new VariableFetcher() {
+
+				@Override
+				public Object get(Object ctx, String name) throws Exception {
+					return MustacheEnvironmentCollector.this.environment
+							.getProperty(name);
+				}
+
+			};
+		}
+		if (this.target.containsKey(name)) {
+			return new VariableFetcher() {
+
+				@Override
+				public Object get(Object ctx, String name) throws Exception {
+					return MustacheEnvironmentCollector.this.target.get(name);
+				}
+
+			};
 		}
 		return null;
-	}
-
-	private class PropertyVariableFetcher implements VariableFetcher {
-
-		@Override
-		public Object get(Object ctx, String name) throws Exception {
-			return MustacheEnvironmentCollector.this.propertyResolver.getProperty(name);
-		}
-
 	}
 
 }

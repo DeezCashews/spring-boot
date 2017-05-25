@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,12 @@
 
 package org.springframework.boot.logging;
 
-import java.io.IOException;
+import java.io.File;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-
+import org.junit.BeforeClass;
 import org.springframework.util.StringUtils;
 
 /**
@@ -35,20 +34,24 @@ public abstract class AbstractLoggingSystemTests {
 
 	private static final String JAVA_IO_TMPDIR = "java.io.tmpdir";
 
-	@Rule
-	public TemporaryFolder temp = new TemporaryFolder();
+	private static String tempDir;
 
-	private String originalTempFolder;
-
-	@Before
-	public void configureTempDir() throws IOException {
-		this.originalTempFolder = System.getProperty(JAVA_IO_TMPDIR);
-		System.setProperty(JAVA_IO_TMPDIR, this.temp.newFolder().getAbsolutePath());
+	@BeforeClass
+	public static void configureTempdir() {
+		tempDir = System.getProperty(JAVA_IO_TMPDIR);
+		File newTempDir = new File("target/tmp");
+		newTempDir.mkdirs();
+		System.setProperty(JAVA_IO_TMPDIR, newTempDir.getAbsolutePath());
 	}
 
-	@After
-	public void reinstateTempDir() {
-		System.setProperty(JAVA_IO_TMPDIR, this.originalTempFolder);
+	@AfterClass
+	public static void reinstateTempDir() {
+		System.setProperty(JAVA_IO_TMPDIR, tempDir);
+	}
+
+	@Before
+	public void deleteTempLog() {
+		new File(tmpDir() + "/spring.log").delete();
 	}
 
 	@After
@@ -57,21 +60,8 @@ public abstract class AbstractLoggingSystemTests {
 		System.clearProperty("PID");
 	}
 
-	protected final String[] getSpringConfigLocations(AbstractLoggingSystem system) {
-		return system.getSpringConfigLocations();
-	}
-
 	protected final LogFile getLogFile(String file, String path) {
-		return getLogFile(file, path, true);
-	}
-
-	protected final LogFile getLogFile(String file, String path,
-			boolean applyToSystemProperties) {
-		LogFile logFile = new LogFile(file, path);
-		if (applyToSystemProperties) {
-			logFile.applyToSystemProperties();
-		}
-		return logFile;
+		return new LogFile(file, path);
 	}
 
 	protected final String tmpDir() {

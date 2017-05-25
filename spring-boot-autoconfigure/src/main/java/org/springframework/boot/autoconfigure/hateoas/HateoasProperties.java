@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,25 +21,23 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * {@link ConfigurationProperties properties} for Spring HATEOAS.
  *
- * @author Phillip Webb
- * @author Andy Wilkinson
+ * @author Phillip webb
  * @since 1.2.1
  */
 @ConfigurationProperties(prefix = "spring.hateoas")
 public class HateoasProperties {
 
 	/**
-	 * Specify if application/hal+json responses should be sent to requests that accept
-	 * application/json.
+	 * If HATEOAS support should be applied to the primary ObjectMapper.
 	 */
-	private boolean useHalAsDefaultJsonMediaType = true;
+	private boolean applyToPrimaryObjectMapper = true;
 
-	public boolean getUseHalAsDefaultJsonMediaType() {
-		return this.useHalAsDefaultJsonMediaType;
+	public boolean isApplyToPrimaryObjectMapper() {
+		return this.applyToPrimaryObjectMapper;
 	}
 
-	public void setUseHalAsDefaultJsonMediaType(boolean useHalAsDefaultJsonMediaType) {
-		this.useHalAsDefaultJsonMediaType = useHalAsDefaultJsonMediaType;
+	public void setApplyToPrimaryObjectMapper(boolean applyToPrimaryObjectMapper) {
+		this.applyToPrimaryObjectMapper = applyToPrimaryObjectMapper;
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package org.springframework.boot.actuate.health;
 
+import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.springframework.util.Assert;
-import org.springframework.util.ObjectUtils;
 
 /**
  * Value object to express state of a component or subsystem.
@@ -38,25 +38,22 @@ import org.springframework.util.ObjectUtils;
 public final class Status {
 
 	/**
-	 * {@link Status} indicating that the component or subsystem is in an unknown state.
+	 * Convenient constant value representing unknown state
 	 */
 	public static final Status UNKNOWN = new Status("UNKNOWN");
 
 	/**
-	 * {@link Status} indicating that the component or subsystem is functioning as
-	 * expected.
+	 * Convenient constant value representing up state
 	 */
 	public static final Status UP = new Status("UP");
 
 	/**
-	 * {@link Status} indicating that the component or subsystem has suffered an
-	 * unexpected failure.
+	 * Convenient constant value representing down state
 	 */
 	public static final Status DOWN = new Status("DOWN");
 
 	/**
-	 * {@link Status} indicating that the component or subsystem has been taken out of
-	 * service and should not be used.
+	 * Convenient constant value representing out-of-service state
 	 */
 	public static final Status OUT_OF_SERVICE = new Status("OUT_OF_SERVICE");
 
@@ -85,8 +82,7 @@ public final class Status {
 	}
 
 	/**
-	 * Return the code for this status.
-	 * @return the code
+	 * @return the code for this status
 	 */
 	@JsonProperty("status")
 	public String getCode() {
@@ -94,8 +90,7 @@ public final class Status {
 	}
 
 	/**
-	 * Return the description of this status.
-	 * @return the description
+	 * @return the description of this status
 	 */
 	@JsonInclude(Include.NON_EMPTY)
 	public String getDescription() {

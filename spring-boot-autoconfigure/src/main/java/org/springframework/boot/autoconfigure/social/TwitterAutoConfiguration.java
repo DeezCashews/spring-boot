@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.springframework.boot.autoconfigure.social;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -38,6 +39,7 @@ import org.springframework.social.connect.web.GenericConnectionStatusView;
 import org.springframework.social.twitter.api.Twitter;
 import org.springframework.social.twitter.api.impl.TwitterTemplate;
 import org.springframework.social.twitter.connect.TwitterConnectionFactory;
+import org.springframework.web.servlet.View;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for Spring Social connectivity with
@@ -59,11 +61,8 @@ public class TwitterAutoConfiguration {
 	@ConditionalOnWebApplication
 	protected static class TwitterConfigurerAdapter extends SocialAutoConfigurerAdapter {
 
-		private final TwitterProperties properties;
-
-		protected TwitterConfigurerAdapter(TwitterProperties properties) {
-			this.properties = properties;
-		}
+		@Autowired
+		private TwitterProperties properties;
 
 		@Bean
 		@ConditionalOnMissingBean
@@ -80,7 +79,7 @@ public class TwitterAutoConfiguration {
 
 		@Bean(name = { "connect/twitterConnect", "connect/twitterConnected" })
 		@ConditionalOnProperty(prefix = "spring.social", name = "auto-connection-views")
-		public GenericConnectionStatusView twitterConnectView() {
+		public View twitterConnectView() {
 			return new GenericConnectionStatusView("twitter", "Twitter");
 		}
 

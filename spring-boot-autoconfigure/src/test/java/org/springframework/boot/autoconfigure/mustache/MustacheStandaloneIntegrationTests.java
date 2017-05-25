@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,30 +18,29 @@ package org.springframework.boot.autoconfigure.mustache;
 
 import java.util.Collections;
 
-import com.samskivert.mustache.Mustache;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
+import org.springframework.boot.autoconfigure.mustache.MustacheStandaloneIntegrationTests.Application;
+import org.springframework.boot.test.IntegrationTest;
+import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.samskivert.mustache.Mustache;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Integration Tests for {@link MustacheAutoConfiguration} outside of a web application.
  *
  * @author Dave Syer
  */
-@RunWith(SpringRunner.class)
-@DirtiesContext
-@SpringBootTest(webEnvironment = WebEnvironment.NONE, properties = { "env.foo=There",
-		"foo=World" })
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringApplicationConfiguration(classes = Application.class)
+@IntegrationTest({ "spring.main.web_environment=false", "env.foo=Heaven", "foo=World" })
 public class MustacheStandaloneIntegrationTests {
 
 	@Autowired
@@ -49,32 +48,34 @@ public class MustacheStandaloneIntegrationTests {
 
 	@Test
 	public void directCompilation() throws Exception {
-		assertThat(this.compiler.compile("Hello: {{world}}")
-				.execute(Collections.singletonMap("world", "World")))
-						.isEqualTo("Hello: World");
+		assertEquals(
+				"Hello: World",
+				this.compiler.compile("Hello: {{world}}").execute(
+						Collections.singletonMap("world", "World")));
 	}
 
 	@Test
 	public void environmentCollectorCompoundKey() throws Exception {
-		assertThat(this.compiler.compile("Hello: {{env.foo}}").execute(new Object()))
-				.isEqualTo("Hello: There");
+		assertEquals("Hello: Heaven", this.compiler.compile("Hello: {{env.foo}}")
+				.execute(new Object()));
 	}
 
 	@Test
 	public void environmentCollectorCompoundKeyStandard() throws Exception {
-		assertThat(this.compiler.standardsMode(true).compile("Hello: {{env.foo}}")
-				.execute(new Object())).isEqualTo("Hello: There");
+		assertEquals(
+				"Hello: Heaven",
+				this.compiler.standardsMode(true).compile("Hello: {{env.foo}}")
+						.execute(new Object()));
 	}
 
 	@Test
 	public void environmentCollectorSimpleKey() throws Exception {
-		assertThat(this.compiler.compile("Hello: {{foo}}").execute(new Object()))
-				.isEqualTo("Hello: World");
+		assertEquals("Hello: World",
+				this.compiler.compile("Hello: {{foo}}").execute(new Object()));
 	}
 
 	@Configuration
-	@Import({ MustacheAutoConfiguration.class,
-			PropertyPlaceholderAutoConfiguration.class })
+	@Import({ MustacheAutoConfiguration.class, PropertyPlaceholderAutoConfiguration.class })
 	protected static class Application {
 
 	}

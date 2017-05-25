@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,41 +20,41 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import org.springframework.boot.actuate.autoconfigure.LocalManagementPort;
-import org.springframework.boot.context.embedded.LocalServerPort;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.IntegrationTest;
+import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.boot.test.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Integration tests for separate management and main service ports.
  *
  * @author Dave Syer
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = {
-		"management.port:0" })
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringApplicationConfiguration(classes = SampleActuatorUiApplication.class)
+@WebAppConfiguration
+@IntegrationTest({ "server.port=0", "management.port:0" })
 @DirtiesContext
 public class SampleActuatorUiApplicationPortTests {
 
-	@LocalServerPort
+	@Value("${local.server.port}")
 	private int port = 9010;
 
-	@LocalManagementPort
+	@Value("${local.management.port}")
 	private int managementPort = 9011;
 
 	@Test
 	public void testHome() throws Exception {
-		ResponseEntity<String> entity = new TestRestTemplate()
-				.getForEntity("http://localhost:" + this.port, String.class);
-		assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.OK);
+		ResponseEntity<String> entity = new TestRestTemplate().getForEntity(
+				"http://localhost:" + this.port, String.class);
+		assertEquals(HttpStatus.OK, entity.getStatusCode());
 	}
 
 	@Test
@@ -62,15 +62,15 @@ public class SampleActuatorUiApplicationPortTests {
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> entity = new TestRestTemplate().getForEntity(
 				"http://localhost:" + this.managementPort + "/metrics", Map.class);
-		assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+		assertEquals(HttpStatus.UNAUTHORIZED, entity.getStatusCode());
 	}
 
 	@Test
 	public void testHealth() throws Exception {
 		ResponseEntity<String> entity = new TestRestTemplate().getForEntity(
 				"http://localhost:" + this.managementPort + "/health", String.class);
-		assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(entity.getBody()).isEqualTo("{\"status\":\"UP\"}");
+		assertEquals(HttpStatus.OK, entity.getStatusCode());
+		assertEquals("{\"status\":\"UP\"}", entity.getBody());
 	}
 
 }

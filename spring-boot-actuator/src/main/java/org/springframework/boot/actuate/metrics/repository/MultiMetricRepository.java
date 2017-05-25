@@ -28,14 +28,13 @@ import org.springframework.boot.actuate.metrics.writer.PrefixMetricWriter;
 public interface MultiMetricRepository extends PrefixMetricReader, PrefixMetricWriter {
 
 	/**
-	 * The names of all the groups known to this repository.
+	 * The names of all the groups known to this repository
 	 * @return all available group names
 	 */
 	Iterable<String> groups();
 
 	/**
-	 * The number of groups available in this repository.
-	 * @return the number of groups
+	 * @return the number of groups available
 	 */
 	long countGroups();
 
