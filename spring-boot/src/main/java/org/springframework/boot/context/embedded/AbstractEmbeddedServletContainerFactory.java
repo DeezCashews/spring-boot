@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2013 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,12 +20,20 @@ import java.io.File;
 import java.io.IOException;
 import java.net.JarURLConnection;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.security.CodeSource;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.jar.JarFile;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import org.springframework.boot.ApplicationHome;
+import org.springframework.boot.ApplicationTemp;
+import org.springframework.util.Assert;
 
 /**
  * Abstract base class for {@link EmbeddedServletContainerFactory} implementations.
@@ -33,9 +41,9 @@ import org.apache.commons.logging.LogFactory;
  * @author Phillip Webb
  * @author Dave Syer
  */
-public abstract class AbstractEmbeddedServletContainerFactory extends
-		AbstractConfigurableEmbeddedServletContainer implements
-		EmbeddedServletContainerFactory {
+public abstract class AbstractEmbeddedServletContainerFactory
+		extends AbstractConfigurableEmbeddedServletContainer
+		implements EmbeddedServletContainerFactory {
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
@@ -55,7 +63,7 @@ public abstract class AbstractEmbeddedServletContainerFactory extends
 	}
 
 	/**
-	 * Returns the absolute document root when it points to a valid folder, logging a
+	 * Returns the absolute document root when it points to a valid directory, logging a
 	 * warning and returning {@code null} otherwise.
 	 * @return the valid document root
 	 */
@@ -68,9 +76,9 @@ public abstract class AbstractEmbeddedServletContainerFactory extends
 		// Or maybe there is a document root in a well-known location
 		file = file != null ? file : getCommonDocumentRoot();
 		if (file == null && this.logger.isDebugEnabled()) {
-			this.logger.debug("None of the document roots "
-					+ Arrays.asList(COMMON_DOC_ROOTS)
-					+ " point to a directory and will be ignored.");
+			this.logger
+					.debug("None of the document roots " + Arrays.asList(COMMON_DOC_ROOTS)
+							+ " point to a directory and will be ignored.");
 		}
 		else if (this.logger.isDebugEnabled()) {
 			this.logger.debug("Document root: " + file);
@@ -79,16 +87,88 @@ public abstract class AbstractEmbeddedServletContainerFactory extends
 	}
 
 	private File getExplodedWarFileDocumentRoot() {
-		File file = getCodeSourceArchive();
-		if (this.logger.isDebugEnabled()) {
-			this.logger.debug("Code archive: " + file);
+		return getExplodedWarFileDocumentRoot(getCodeSourceArchive());
+	}
+
+	protected List<URL> getUrlsOfJarsWithMetaInfResources() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		List<URL> staticResourceUrls = new ArrayList<URL>();
+		if (classLoader instanceof URLClassLoader) {
+			for (URL url : ((URLClassLoader) classLoader).getURLs()) {
+				try {
+					if ("file".equals(url.getProtocol())) {
+						File file = new File(url.getFile());
+						if (file.isDirectory()
+								&& new File(file, "META-INF/resources").isDirectory()) {
+							staticResourceUrls.add(url);
+						}
+						else if (isResourcesJar(file)) {
+							staticResourceUrls.add(url);
+						}
+					}
+					else {
+						URLConnection connection = url.openConnection();
+						if (connection instanceof JarURLConnection) {
+							if (isResourcesJar((JarURLConnection) connection)) {
+								staticResourceUrls.add(url);
+							}
+						}
+					}
+				}
+				catch (IOException ex) {
+					throw new IllegalStateException(ex);
+				}
+			}
 		}
-		if (file != null && file.exists() && file.getAbsolutePath().contains("/WEB-INF/")) {
-			String path = file.getAbsolutePath();
-			path = path.substring(0, path.indexOf("/WEB-INF/"));
-			return new File(path);
+		return staticResourceUrls;
+	}
+
+	private boolean isResourcesJar(JarURLConnection connection) {
+		try {
+			return isResourcesJar(connection.getJarFile());
+		}
+		catch (IOException ex) {
+			return false;
+		}
+	}
+
+	private boolean isResourcesJar(File file) {
+		try {
+			return isResourcesJar(new JarFile(file));
+		}
+		catch (IOException ex) {
+			return false;
+		}
+	}
+
+	private boolean isResourcesJar(JarFile jar) throws IOException {
+		try {
+			return jar.getName().endsWith(".jar")
+					&& (jar.getJarEntry("META-INF/resources") != null);
+		}
+		finally {
+			jar.close();
+		}
+	}
+
+	File getExplodedWarFileDocumentRoot(File codeSourceFile) {
+		if (this.logger.isDebugEnabled()) {
+			this.logger.debug("Code archive: " + codeSourceFile);
+		}
+		if (codeSourceFile != null && codeSourceFile.exists()) {
+			String path = codeSourceFile.getAbsolutePath();
+			int webInfPathIndex = path
+					.indexOf(File.separatorChar + "WEB-INF" + File.separatorChar);
+			if (webInfPathIndex >= 0) {
+				path = path.substring(0, webInfPathIndex);
+				return new File(path);
+			}
 		}
 		return null;
+	}
+
+	private File getWarFileDocumentRoot() {
+		return getArchiveFileDocumentRoot(".war");
 	}
 
 	private File getArchiveFileDocumentRoot(String extension) {
@@ -103,14 +183,10 @@ public abstract class AbstractEmbeddedServletContainerFactory extends
 		return null;
 	}
 
-	private File getWarFileDocumentRoot() {
-		return getArchiveFileDocumentRoot(".war");
-	}
-
 	private File getCommonDocumentRoot() {
 		for (String commonDocRoot : COMMON_DOC_ROOTS) {
 			File root = new File(commonDocRoot);
-			if (root != null && root.exists() && root.isDirectory()) {
+			if (root.exists() && root.isDirectory()) {
 				return root.getAbsoluteFile();
 			}
 		}
@@ -136,6 +212,47 @@ public abstract class AbstractEmbeddedServletContainerFactory extends
 		}
 		catch (IOException ex) {
 			return null;
+		}
+	}
+
+	protected final File getValidSessionStoreDir() {
+		return getValidSessionStoreDir(true);
+	}
+
+	protected final File getValidSessionStoreDir(boolean mkdirs) {
+		File dir = getSessionStoreDir();
+		if (dir == null) {
+			return new ApplicationTemp().getDir("servlet-sessions");
+		}
+		if (!dir.isAbsolute()) {
+			dir = new File(new ApplicationHome().getDir(), dir.getPath());
+		}
+		if (!dir.exists() && mkdirs) {
+			dir.mkdirs();
+		}
+		Assert.state(!mkdirs || dir.exists(), "Session dir " + dir + " does not exist");
+		Assert.state(!dir.isFile(), "Session dir " + dir + " points to a file");
+		return dir;
+	}
+
+	/**
+	 * Returns the absolute temp dir for given servlet container.
+	 * @param prefix servlet container name
+	 * @return The temp dir for given servlet container.
+	 */
+	protected File createTempDir(String prefix) {
+		try {
+			File tempDir = File.createTempFile(prefix + ".", "." + getPort());
+			tempDir.delete();
+			tempDir.mkdir();
+			tempDir.deleteOnExit();
+			return tempDir;
+		}
+		catch (IOException ex) {
+			throw new EmbeddedServletContainerException(
+					"Unable to create tempDir. java.io.tmpdir is set to "
+							+ System.getProperty("java.io.tmpdir"),
+					ex);
 		}
 	}
 

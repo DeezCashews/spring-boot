@@ -5,7 +5,7 @@
 		<!-- Your own application should inherit from spring-boot-starter-parent -->
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-samples</artifactId>
-		<version>1.2.2.BUILD-SNAPSHOT</version>
+		<version>1.5.4.BUILD-SNAPSHOT</version>
 	</parent>
 	<artifactId>spring-boot-sample-jetty8</artifactId>
 	<name>Spring Boot Jetty 8 Sample</name>
@@ -21,6 +21,7 @@
 		<jetty-jsp.version>2.2.0.v201112011158</jetty-jsp.version>
 	</properties>
 	<dependencies>
+		<!-- Compile -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
@@ -39,6 +40,7 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webmvc</artifactId>
 		</dependency>
+		<!-- Test -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

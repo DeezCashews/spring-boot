@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 
 package org.springframework.boot.autoconfigure.mustache;
 
-import org.springframework.beans.factory.FactoryBean;
-
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Mustache.Collector;
 import com.samskivert.mustache.Mustache.Compiler;
 import com.samskivert.mustache.Mustache.Escaper;
 import com.samskivert.mustache.Mustache.Formatter;
 import com.samskivert.mustache.Mustache.TemplateLoader;
+
+import org.springframework.beans.factory.FactoryBean;
 
 /**
  * Factory for a Mustache compiler with custom strategies. For building a {@code @Bean}
@@ -33,7 +33,9 @@ import com.samskivert.mustache.Mustache.TemplateLoader;
  * @author Dave Syer
  * @since 1.2.2
  * @see MustacheResourceTemplateLoader
+ * @deprecated  as of 1.5
  */
+@Deprecated
 public class MustacheCompilerFactoryBean implements FactoryBean<Mustache.Compiler> {
 
 	private String delims;
@@ -47,6 +49,10 @@ public class MustacheCompilerFactoryBean implements FactoryBean<Mustache.Compile
 	private Collector collector;
 
 	private Compiler compiler;
+
+	private String defaultValue;
+
+	private Boolean emptyStringIsFalse;
 
 	public void setDelims(String delims) {
 		this.delims = delims;
@@ -68,6 +74,14 @@ public class MustacheCompilerFactoryBean implements FactoryBean<Mustache.Compile
 		this.collector = collector;
 	}
 
+	public void setDefaultValue(String defaultValue) {
+		this.defaultValue = defaultValue;
+	}
+
+	public void setEmptyStringIsFalse(Boolean emptyStringIsFalse) {
+		this.emptyStringIsFalse = emptyStringIsFalse;
+	}
+
 	@Override
 	public Mustache.Compiler getObject() throws Exception {
 		this.compiler = Mustache.compiler();
@@ -85,6 +99,12 @@ public class MustacheCompilerFactoryBean implements FactoryBean<Mustache.Compile
 		}
 		if (this.collector != null) {
 			this.compiler = this.compiler.withCollector(this.collector);
+		}
+		if (this.defaultValue != null) {
+			this.compiler = this.compiler.defaultValue(this.defaultValue);
+		}
+		if (this.emptyStringIsFalse != null) {
+			this.compiler = this.compiler.emptyStringIsFalse(this.emptyStringIsFalse);
 		}
 		return this.compiler;
 	}

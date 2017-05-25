@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,17 +43,17 @@ import org.springframework.util.StringUtils;
 public abstract class ResourceUtils {
 
 	/**
-	 * Pseudo URL prefix for loading from the class path: "classpath:"
+	 * Pseudo URL prefix for loading from the class path: "classpath:".
 	 */
 	public static final String CLASSPATH_URL_PREFIX = "classpath:";
 
 	/**
-	 * Pseudo URL prefix for loading all resources from the class path: "classpath*:"
+	 * Pseudo URL prefix for loading all resources from the class path: "classpath*:".
 	 */
 	public static final String ALL_CLASSPATH_URL_PREFIX = "classpath*:";
 
 	/**
-	 * URL prefix for loading from the file system: "file:"
+	 * URL prefix for loading from the file system: "file:".
 	 */
 	public static final String FILE_URL_PREFIX = "file:";
 
@@ -66,20 +66,16 @@ public abstract class ResourceUtils {
 	 * @return a list of URLs
 	 */
 	public static List<String> getUrls(String path, ClassLoader classLoader) {
-
 		if (classLoader == null) {
 			classLoader = ClassUtils.getDefaultClassLoader();
 		}
-
 		path = StringUtils.cleanPath(path);
-
 		try {
 			return getUrlsFromWildcardPath(path, classLoader);
 		}
 		catch (Exception ex) {
-			throw new IllegalArgumentException("Cannot create URL from path [" + path
-					+ "]", ex);
-
+			throw new IllegalArgumentException(
+					"Cannot create URL from path [" + path + "]", ex);
 		}
 	}
 
@@ -88,7 +84,6 @@ public abstract class ResourceUtils {
 		if (path.contains(":")) {
 			return getUrlsFromPrefixedWildcardPath(path, classLoader);
 		}
-
 		Set<String> result = new LinkedHashSet<String>();
 		try {
 			result.addAll(getUrls(FILE_URL_PREFIX + path, classLoader));
@@ -96,7 +91,6 @@ public abstract class ResourceUtils {
 		catch (IllegalArgumentException ex) {
 			// ignore
 		}
-
 		path = stripLeadingSlashes(path);
 		result.addAll(getUrls(ALL_CLASSPATH_URL_PREFIX + path, classLoader));
 		return new ArrayList<String>(result);
@@ -151,7 +145,7 @@ public abstract class ResourceUtils {
 
 		private final FileSystemResourceLoader files;
 
-		public FileSearchResourceLoader(ClassLoader classLoader) {
+		FileSearchResourceLoader(ClassLoader classLoader) {
 			super(classLoader);
 			this.files = new FileSystemResourceLoader();
 		}
@@ -160,8 +154,9 @@ public abstract class ResourceUtils {
 		public Resource getResource(String location) {
 			Assert.notNull(location, "Location must not be null");
 			if (location.startsWith(CLASSPATH_URL_PREFIX)) {
-				return new ClassPathResource(location.substring(CLASSPATH_URL_PREFIX
-						.length()), getClassLoader());
+				return new ClassPathResource(
+						location.substring(CLASSPATH_URL_PREFIX.length()),
+						getClassLoader());
 			}
 			else {
 				if (location.startsWith(FILE_URL_PREFIX)) {

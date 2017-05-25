@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,10 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicHeader;
 import org.hamcrest.Matcher;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.mockito.ArgumentMatcher;
+
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StreamUtils;
@@ -48,37 +50,55 @@ public abstract class AbstractHttpClientMockTests {
 
 	protected final CloseableHttpClient http = mock(CloseableHttpClient.class);
 
-	protected void mockSuccessfulMetadataGet() throws IOException {
-		mockSuccessfulMetadataGet("2.0.0");
+	protected void mockSuccessfulMetadataTextGet() throws IOException {
+		mockSuccessfulMetadataGet("metadata/service-metadata-2.1.0.txt", "text/plain",
+				true);
 	}
 
-	protected void mockSuccessfulMetadataGet(String version) throws IOException {
+	protected void mockSuccessfulMetadataGet(boolean serviceCapabilities)
+			throws IOException {
+		mockSuccessfulMetadataGet("metadata/service-metadata-2.1.0.json",
+				"application/vnd.initializr.v2.1+json", serviceCapabilities);
+	}
+
+	protected void mockSuccessfulMetadataGetV2(boolean serviceCapabilities)
+			throws IOException {
+		mockSuccessfulMetadataGet("metadata/service-metadata-2.0.0.json",
+				"application/vnd.initializr.v2+json", serviceCapabilities);
+	}
+
+	protected void mockSuccessfulMetadataGet(String contentPath, String contentType,
+			boolean serviceCapabilities) throws IOException {
 		CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-		Resource resource = new ClassPathResource("metadata/service-metadata-" + version
-				+ ".json");
-		byte[] content = StreamUtils.copyToByteArray(resource.getInputStream());
-		mockHttpEntity(response, content, "application/vnd.initializr.v2+json");
+		byte[] content = readClasspathResource(contentPath);
+		mockHttpEntity(response, content, contentType);
 		mockStatus(response, 200);
-		given(this.http.execute(argThat(getForJsonMetadata()))).willReturn(response);
+		given(this.http.execute(argThat(getForMetadata(serviceCapabilities))))
+				.willReturn(response);
+	}
+
+	protected byte[] readClasspathResource(String contentPath) throws IOException {
+		Resource resource = new ClassPathResource(contentPath);
+		return StreamUtils.copyToByteArray(resource.getInputStream());
 	}
 
 	protected void mockSuccessfulProjectGeneration(
 			MockHttpProjectGenerationRequest request) throws IOException {
 		// Required for project generation as the metadata is read first
-		mockSuccessfulMetadataGet();
+		mockSuccessfulMetadataGet(false);
 		CloseableHttpResponse response = mock(CloseableHttpResponse.class);
 		mockHttpEntity(response, request.content, request.contentType);
 		mockStatus(response, 200);
-		String header = (request.fileName != null ? contentDispositionValue(request.fileName)
-				: null);
+		String header = (request.fileName != null
+				? contentDispositionValue(request.fileName) : null);
 		mockHttpHeader(response, "Content-Disposition", header);
-		given(this.http.execute(argThat(getForNonJsonMetadata()))).willReturn(response);
+		given(this.http.execute(argThat(getForNonMetadata()))).willReturn(response);
 	}
 
 	protected void mockProjectGenerationError(int status, String message)
-			throws IOException {
+			throws IOException, JSONException {
 		// Required for project generation as the metadata is read first
-		mockSuccessfulMetadataGet();
+		mockSuccessfulMetadataGet(false);
 		CloseableHttpResponse response = mock(CloseableHttpResponse.class);
 		mockHttpEntity(response, createJsonError(status, message).getBytes(),
 				"application/json");
@@ -86,7 +106,8 @@ public abstract class AbstractHttpClientMockTests {
 		given(this.http.execute(isA(HttpGet.class))).willReturn(response);
 	}
 
-	protected void mockMetadataGetError(int status, String message) throws IOException {
+	protected void mockMetadataGetError(int status, String message)
+			throws IOException, JSONException {
 		CloseableHttpResponse response = mock(CloseableHttpResponse.class);
 		mockHttpEntity(response, createJsonError(status, message).getBytes(),
 				"application/json");
@@ -99,8 +120,8 @@ public abstract class AbstractHttpClientMockTests {
 		try {
 			HttpEntity entity = mock(HttpEntity.class);
 			given(entity.getContent()).willReturn(new ByteArrayInputStream(content));
-			Header contentTypeHeader = contentType != null ? new BasicHeader(
-					"Content-Type", contentType) : null;
+			Header contentTypeHeader = contentType != null
+					? new BasicHeader("Content-Type", contentType) : null;
 			given(entity.getContentType()).willReturn(contentTypeHeader);
 			given(response.getEntity()).willReturn(entity);
 			return entity;
@@ -122,19 +143,22 @@ public abstract class AbstractHttpClientMockTests {
 		given(response.getFirstHeader(headerName)).willReturn(header);
 	}
 
-	protected Matcher<HttpGet> getForJsonMetadata() {
-		return new HasAcceptHeader("application/vnd.initializr.v2+json", true);
+	private Matcher<HttpGet> getForMetadata(boolean serviceCapabilities) {
+		if (!serviceCapabilities) {
+			return new HasAcceptHeader(InitializrService.ACCEPT_META_DATA, true);
+		}
+		return new HasAcceptHeader(InitializrService.ACCEPT_SERVICE_CAPABILITIES, true);
 	}
 
-	protected Matcher<HttpGet> getForNonJsonMetadata() {
-		return new HasAcceptHeader("application/vnd.initializr.v2+json", false);
+	private Matcher<HttpGet> getForNonMetadata() {
+		return new HasAcceptHeader(InitializrService.ACCEPT_META_DATA, false);
 	}
 
 	private String contentDispositionValue(String fileName) {
 		return "attachment; filename=\"" + fileName + "\"";
 	}
 
-	private String createJsonError(int status, String message) {
+	private String createJsonError(int status, String message) throws JSONException {
 		JSONObject json = new JSONObject();
 		json.put("status", status);
 		if (message != null) {
@@ -170,7 +194,7 @@ public abstract class AbstractHttpClientMockTests {
 
 		private final boolean shouldMatch;
 
-		public HasAcceptHeader(String value, boolean shouldMatch) {
+		HasAcceptHeader(String value, boolean shouldMatch) {
 			this.value = value;
 			this.shouldMatch = shouldMatch;
 		}
@@ -187,6 +211,7 @@ public abstract class AbstractHttpClientMockTests {
 			}
 			return acceptHeader == null || !this.value.equals(acceptHeader.getValue());
 		}
+
 	}
 
 }

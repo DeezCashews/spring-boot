@@ -4,11 +4,12 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starters</artifactId>
-		<version>1.2.2.BUILD-SNAPSHOT</version>
+		<version>1.5.4.BUILD-SNAPSHOT</version>
 	</parent>
 	<artifactId>spring-boot-starter-remote-shell</artifactId>
-	<name>Spring Boot Remote Shell Starter</name>
-	<description>Spring Boot Remote Shell Starter</description>
+	<name>spring-boot-starter-remote-shell (DEPRECATED)</name>
+	<description>Starter for using the CRaSH remote shell to monitor and manage your
+		application over SSH. Deprecated since 1.5</description>
 	<url>http://projects.spring.io/spring-boot/</url>
 	<organization>
 		<name>Pivotal Software, Inc.</name>
@@ -25,20 +26,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-core</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-context</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.crashub</groupId>
@@ -105,6 +92,10 @@
 					<groupId>org.codehaus.groovy</groupId>
 					<artifactId>groovy-all</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>javax.mail</groupId>
+					<artifactId>mail</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -121,5 +112,31 @@
 			<groupId>org.codehaus.groovy</groupId>
 			<artifactId>groovy</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.sun.mail</groupId>
+			<artifactId>javax.mail</artifactId>
+		</dependency>
 	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.basepom.maven</groupId>
+				<artifactId>duplicate-finder-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>duplicate-dependencies</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<ignoredResourcePatterns>
+								<ignoredResourcePattern>crash/crash.properties</ignoredResourcePattern>
+							</ignoredResourcePatterns>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 </project>

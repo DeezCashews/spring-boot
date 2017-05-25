@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.springframework.boot.json;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +30,9 @@ import org.springframework.util.StringUtils;
  * YAML are supported).
  *
  * @author Dave Syer
- * @see JsonParserFactory
+ * @author Jean de Klerk
  * @since 1.2.0
+ * @see JsonParserFactory
  */
 public class BasicJsonParser implements JsonParser {
 
@@ -43,11 +43,8 @@ public class BasicJsonParser implements JsonParser {
 			if (json.startsWith("{")) {
 				return parseMapInternal(json);
 			}
-			else if (json.equals("")) {
-				return new HashMap<String, Object>();
-			}
 		}
-		return null;
+		throw new IllegalArgumentException("Cannot parse JSON");
 	}
 
 	@Override
@@ -57,11 +54,8 @@ public class BasicJsonParser implements JsonParser {
 			if (json.startsWith("[")) {
 				return parseListInternal(json);
 			}
-			else if (json.trim().equals("")) {
-				return new ArrayList<Object>();
-			}
 		}
-		return null;
+		throw new IllegalArgumentException("Cannot parse JSON");
 	}
 
 	private List<Object> parseListInternal(String json) {
@@ -99,14 +93,14 @@ public class BasicJsonParser implements JsonParser {
 	}
 
 	private static String trimTrailingCharacter(String string, char c) {
-		if (string.length() >= 0 && string.charAt(string.length() - 1) == c) {
+		if (string.length() > 0 && string.charAt(string.length() - 1) == c) {
 			return string.substring(0, string.length() - 1);
 		}
 		return string;
 	}
 
 	private static String trimLeadingCharacter(String string, char c) {
-		if (string.length() >= 0 && string.charAt(0) == c) {
+		if (string.length() > 0 && string.charAt(0) == c) {
 			return string.substring(1);
 		}
 		return string;

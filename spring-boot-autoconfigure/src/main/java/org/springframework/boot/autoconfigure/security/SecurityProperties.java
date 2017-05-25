@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,13 @@
 package org.springframework.boot.autoconfigure.security;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.core.Ordered;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.util.StringUtils;
@@ -30,8 +32,9 @@ import org.springframework.util.StringUtils;
  * Properties for the security aspects of an application.
  *
  * @author Dave Syer
+ * @author Andy Wilkinson
  */
-@ConfigurationProperties(prefix = "security", ignoreUnknownFields = false)
+@ConfigurationProperties(prefix = "security")
 public class SecurityProperties implements SecurityPrerequisite {
 
 	/**
@@ -39,13 +42,14 @@ public class SecurityProperties implements SecurityPrerequisite {
 	 * useful place to put user-defined access rules if you want to override the default
 	 * access rules.
 	 */
-	public static final int ACCESS_OVERRIDE_ORDER = SecurityProperties.BASIC_AUTH_ORDER - 2;
+	public static final int ACCESS_OVERRIDE_ORDER = SecurityProperties.BASIC_AUTH_ORDER
+			- 2;
 
 	/**
 	 * Order applied to the WebSecurityConfigurerAdapter that is used to configure basic
 	 * authentication for application endpoints. If you want to add your own
-	 * authentication for all or some of those endpoints the best thing to do is add your
-	 * own WebSecurityConfigurerAdapter with lower order.
+	 * authentication for all or some of those endpoints the best thing to do is to add
+	 * your own WebSecurityConfigurerAdapter with lower order.
 	 */
 	public static final int BASIC_AUTH_ORDER = Ordered.LOWEST_PRECEDENCE - 5;
 
@@ -56,9 +60,12 @@ public class SecurityProperties implements SecurityPrerequisite {
 	public static final int IGNORED_ORDER = Ordered.HIGHEST_PRECEDENCE;
 
 	/**
-	 * The default order of Spring Security's Filter
+	 * Default order of Spring Security's Filter in the servlet container (i.e. amongst
+	 * other filters registered with the container). There is no connection between this
+	 * and the <code>@Order</code> on a WebSecurityConfigurer.
 	 */
-	public static final int DEFAULT_FILTER_ORDER = 0;
+	public static final int DEFAULT_FILTER_ORDER = FilterRegistrationBean.REQUEST_WRAPPER_FILTER_MAX_ORDER
+			- 100;
 
 	/**
 	 * Enable secure channel for all requests.
@@ -91,6 +98,11 @@ public class SecurityProperties implements SecurityPrerequisite {
 	 * Security filter chain order.
 	 */
 	private int filterOrder = DEFAULT_FILTER_ORDER;
+
+	/**
+	 * Security filter chain dispatcher types.
+	 */
+	private Set<String> filterDispatcherTypes;
 
 	public Headers getHeaders() {
 		return this.headers;
@@ -148,31 +160,65 @@ public class SecurityProperties implements SecurityPrerequisite {
 		this.filterOrder = filterOrder;
 	}
 
+	public Set<String> getFilterDispatcherTypes() {
+		return this.filterDispatcherTypes;
+	}
+
+	public void setFilterDispatcherTypes(Set<String> filterDispatcherTypes) {
+		this.filterDispatcherTypes = filterDispatcherTypes;
+	}
+
 	public static class Headers {
 
-		public static enum HSTS {
+		public enum HSTS {
+
 			NONE, DOMAIN, ALL
+
+		}
+
+		public enum ContentSecurityPolicyMode {
+
+			/**
+			 * Use the 'Content-Security-Policy' header.
+			 */
+			DEFAULT,
+
+			/**
+			 * Use the 'Content-Security-Policy-Report-Only' header.
+			 */
+			REPORT_ONLY
+
 		}
 
 		/**
 		 * Enable cross site scripting (XSS) protection.
 		 */
-		private boolean xss;
+		private boolean xss = true;
 
 		/**
 		 * Enable cache control HTTP headers.
 		 */
-		private boolean cache;
+		private boolean cache = true;
 
 		/**
 		 * Enable "X-Frame-Options" header.
 		 */
-		private boolean frame;
+		private boolean frame = true;
 
 		/**
 		 * Enable "X-Content-Type-Options" header.
 		 */
-		private boolean contentType;
+		private boolean contentType = true;
+
+		/**
+		 * Value for content security policy header.
+		 */
+		private String contentSecurityPolicy;
+
+		/**
+		 * Content security policy mode.
+		 */
+		private ContentSecurityPolicyMode contentSecurityPolicyMode = ContentSecurityPolicyMode.DEFAULT;
 
 		/**
 		 * HTTP Strict Transport Security (HSTS) mode (none, domain, all).
@@ -211,6 +257,23 @@ public class SecurityProperties implements SecurityPrerequisite {
 			this.contentType = contentType;
 		}
 
+		public String getContentSecurityPolicy() {
+			return this.contentSecurityPolicy;
+		}
+
+		public void setContentSecurityPolicy(String contentSecurityPolicy) {
+			this.contentSecurityPolicy = contentSecurityPolicy;
+		}
+
+		public ContentSecurityPolicyMode getContentSecurityPolicyMode() {
+			return this.contentSecurityPolicyMode;
+		}
+
+		public void setContentSecurityPolicyMode(
+				ContentSecurityPolicyMode contentSecurityPolicyMode) {
+			this.contentSecurityPolicyMode = contentSecurityPolicyMode;
+		}
+
 		public HSTS getHsts() {
 			return this.hsts;
 		}
@@ -238,6 +301,11 @@ public class SecurityProperties implements SecurityPrerequisite {
 		 */
 		private String[] path = new String[] { "/**" };
 
+		/**
+		 * Security authorize mode to apply.
+		 */
+		private SecurityAuthorizeMode authorizeMode = SecurityAuthorizeMode.ROLE;
+
 		public boolean isEnabled() {
 			return this.enabled;
 		}
@@ -262,6 +330,14 @@ public class SecurityProperties implements SecurityPrerequisite {
 			this.path = paths;
 		}
 
+		public SecurityAuthorizeMode getAuthorizeMode() {
+			return this.authorizeMode;
+		}
+
+		public void setAuthorizeMode(SecurityAuthorizeMode authorizeMode) {
+			this.authorizeMode = authorizeMode;
+		}
+
 	}
 
 	public static class User {
@@ -279,7 +355,8 @@ public class SecurityProperties implements SecurityPrerequisite {
 		/**
 		 * Granted roles for the default user name.
 		 */
-		private List<String> role = new ArrayList<String>(Arrays.asList("USER"));
+		private List<String> role = new ArrayList<String>(
+				Collections.singletonList("USER"));
 
 		private boolean defaultPassword = true;
 

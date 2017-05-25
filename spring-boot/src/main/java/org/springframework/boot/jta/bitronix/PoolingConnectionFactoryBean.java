@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +22,15 @@ import javax.jms.JMSException;
 import javax.jms.XAConnection;
 import javax.jms.XAConnectionFactory;
 
+import bitronix.tm.resource.common.ResourceBean;
+import bitronix.tm.resource.common.XAStatefulHolder;
+import bitronix.tm.resource.jms.PoolingConnectionFactory;
+
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.StringUtils;
-
-import bitronix.tm.resource.common.ResourceBean;
-import bitronix.tm.resource.common.XAStatefulHolder;
-import bitronix.tm.resource.jms.PoolingConnectionFactory;
 
 /**
  * Spring friendly version of {@link PoolingConnectionFactory}. Provides sensible defaults
@@ -43,10 +43,10 @@ import bitronix.tm.resource.jms.PoolingConnectionFactory;
  */
 @SuppressWarnings("serial")
 @ConfigurationProperties(prefix = "spring.jta.bitronix.connectionfactory")
-public class PoolingConnectionFactoryBean extends PoolingConnectionFactory implements
-		BeanNameAware, InitializingBean, DisposableBean {
+public class PoolingConnectionFactoryBean extends PoolingConnectionFactory
+		implements BeanNameAware, InitializingBean, DisposableBean {
 
-	private static ThreadLocal<PoolingConnectionFactoryBean> source = new ThreadLocal<PoolingConnectionFactoryBean>();
+	private static final ThreadLocal<PoolingConnectionFactoryBean> source = new ThreadLocal<PoolingConnectionFactoryBean>();
 
 	private String beanName;
 
@@ -115,6 +115,7 @@ public class PoolingConnectionFactoryBean extends PoolingConnectionFactory imple
 	/**
 	 * A {@link XAConnectionFactory} implementation that delegates to the
 	 * {@link ThreadLocal} {@link PoolingConnectionFactoryBean}.
+	 *
 	 * @see PoolingConnectionFactoryBean#setConnectionFactory(XAConnectionFactory)
 	 */
 	public static class DirectXAConnectionFactory implements XAConnectionFactory {

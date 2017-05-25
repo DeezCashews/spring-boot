@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,17 @@
 
 package org.springframework.boot.context.embedded.tomcat;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLClassLoader;
+import java.util.List;
 
 import javax.naming.directory.DirContext;
-import javax.servlet.ServletContext;
 
 import org.apache.catalina.Context;
 import org.apache.catalina.WebResourceRoot.ResourceSetType;
 import org.apache.catalina.core.StandardContext;
+
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 
@@ -36,37 +35,29 @@ import org.springframework.util.ReflectionUtils;
  *
  * @author Dave Syer
  * @author Phillip Webb
+ * @author Andy Wilkinson
  */
 abstract class TomcatResources {
 
 	private final Context context;
 
-	public TomcatResources(Context context) {
+	TomcatResources(Context context) {
 		this.context = context;
 	}
 
-	/**
-	 * Add resources from the classpath
-	 */
-	public void addClasspathResources() {
-		ClassLoader loader = getClass().getClassLoader();
-		if (loader instanceof URLClassLoader) {
-			for (URL url : ((URLClassLoader) loader).getURLs()) {
-				String file = url.getFile();
-				if (file.endsWith(".jar") || file.endsWith(".jar!/")) {
-					String jar = url.toString();
-					if (!jar.startsWith("jar:")) {
-						// A jar file in the file system. Convert to Jar URL.
-						jar = "jar:" + jar + "!/";
-					}
-					addJar(jar);
+	void addResourceJars(List<URL> resourceJarUrls) {
+		for (URL url : resourceJarUrls) {
+			String file = url.getFile();
+			if (file.endsWith(".jar") || file.endsWith(".jar!/")) {
+				String jar = url.toString();
+				if (!jar.startsWith("jar:")) {
+					// A jar file in the file system. Convert to Jar URL.
+					jar = "jar:" + jar + "!/";
 				}
-				else if (url.toString().startsWith("file:")) {
-					String dir = url.toString().substring("file:".length());
-					if (new File(dir).isDirectory()) {
-						addDir(dir, url);
-					}
-				}
+				addJar(jar);
+			}
+			else {
+				addDir(file, url);
 			}
 		}
 	}
@@ -107,7 +98,7 @@ abstract class TomcatResources {
 
 		private final Method addResourceJarUrlMethod;
 
-		public Tomcat7Resources(Context context) {
+		Tomcat7Resources(Context context) {
 			super(context);
 			this.addResourceJarUrlMethod = ReflectionUtils.findMethod(context.getClass(),
 					"addResourceJarUrl", URL.class);
@@ -115,7 +106,7 @@ abstract class TomcatResources {
 
 		@Override
 		protected void addJar(String jar) {
-			URL url = getJarUlr(jar);
+			URL url = getJarUrl(jar);
 			if (url != null) {
 				try {
 					this.addResourceJarUrlMethod.invoke(getContext(), url);
@@ -126,7 +117,7 @@ abstract class TomcatResources {
 			}
 		}
 
-		private URL getJarUlr(String jar) {
+		private URL getJarUrl(String jar) {
 			try {
 				return new URL(jar);
 			}
@@ -138,12 +129,12 @@ abstract class TomcatResources {
 
 		@Override
 		protected void addDir(String dir, URL url) {
-			if (getContext() instanceof ServletContext) {
+			if (getContext() instanceof StandardContext) {
 				try {
 					Class<?> fileDirContextClass = Class
 							.forName("org.apache.naming.resources.FileDirContext");
-					Method setDocBaseMethod = ReflectionUtils.findMethod(
-							fileDirContextClass, "setDocBase", String.class);
+					Method setDocBaseMethod = ReflectionUtils
+							.findMethod(fileDirContextClass, "setDocBase", String.class);
 					Object fileDirContext = fileDirContextClass.newInstance();
 					setDocBaseMethod.invoke(fileDirContext, dir);
 					Method addResourcesDirContextMethod = ReflectionUtils.findMethod(
@@ -156,6 +147,7 @@ abstract class TomcatResources {
 				}
 			}
 		}
+
 	}
 
 	/**
@@ -163,7 +155,7 @@ abstract class TomcatResources {
 	 */
 	static class Tomcat8Resources extends TomcatResources {
 
-		public Tomcat8Resources(Context context) {
+		Tomcat8Resources(Context context) {
 			super(context);
 		}
 

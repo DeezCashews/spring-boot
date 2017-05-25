@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,27 +19,29 @@ package org.springframework.boot.autoconfigure.web;
 import java.util.Arrays;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import org.junit.After;
 import org.junit.Test;
-import org.springframework.beans.DirectFieldAccessor;
+
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
-import org.springframework.boot.test.EnvironmentTestUtils;
+import org.springframework.boot.autoconfigure.web.JacksonHttpMessageConvertersConfiguration.MappingJackson2HttpMessageConverterConfiguration;
+import org.springframework.boot.test.util.EnvironmentTestUtils;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration;
+import org.springframework.hateoas.ResourceSupport;
+import org.springframework.hateoas.mvc.TypeConstrainedMappingJackson2HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.GsonHttpMessageConverter;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link HttpMessageConvertersAutoConfiguration}.
@@ -65,11 +67,12 @@ public class HttpMessageConvertersAutoConfigurationTests {
 	public void noObjectMapperMeansNoConverter() throws Exception {
 		this.context.register(HttpMessageConvertersAutoConfiguration.class);
 		this.context.refresh();
-		assertTrue(this.context.getBeansOfType(ObjectMapper.class).isEmpty());
-		assertTrue(this.context.getBeansOfType(MappingJackson2HttpMessageConverter.class)
-				.isEmpty());
-		assertTrue(this.context.getBeansOfType(
-				MappingJackson2XmlHttpMessageConverter.class).isEmpty());
+		assertThat(this.context.getBeansOfType(ObjectMapper.class)).isEmpty();
+		assertThat(this.context.getBeansOfType(MappingJackson2HttpMessageConverter.class))
+				.isEmpty();
+		assertThat(
+				this.context.getBeansOfType(MappingJackson2XmlHttpMessageConverter.class))
+						.isEmpty();
 	}
 
 	@Test
@@ -81,7 +84,8 @@ public class HttpMessageConvertersAutoConfigurationTests {
 		assertConverterBeanExists(MappingJackson2HttpMessageConverter.class,
 				"mappingJackson2HttpMessageConverter");
 
-		assertConverterBeanRegisteredWithHttpMessageConverters(MappingJackson2HttpMessageConverter.class);
+		assertConverterBeanRegisteredWithHttpMessageConverters(
+				MappingJackson2HttpMessageConverter.class);
 	}
 
 	@Test
@@ -95,8 +99,10 @@ public class HttpMessageConvertersAutoConfigurationTests {
 		assertConverterBeanExists(MappingJackson2XmlHttpMessageConverter.class,
 				"mappingJackson2XmlHttpMessageConverter");
 
-		assertConverterBeanRegisteredWithHttpMessageConverters(MappingJackson2HttpMessageConverter.class);
-		assertConverterBeanRegisteredWithHttpMessageConverters(MappingJackson2XmlHttpMessageConverter.class);
+		assertConverterBeanRegisteredWithHttpMessageConverters(
+				MappingJackson2HttpMessageConverter.class);
+		assertConverterBeanRegisteredWithHttpMessageConverters(
+				MappingJackson2XmlHttpMessageConverter.class);
 	}
 
 	@Test
@@ -114,8 +120,9 @@ public class HttpMessageConvertersAutoConfigurationTests {
 	public void noGson() throws Exception {
 		this.context.register(HttpMessageConvertersAutoConfiguration.class);
 		this.context.refresh();
-		assertTrue(this.context.getBeansOfType(Gson.class).isEmpty());
-		assertTrue(this.context.getBeansOfType(GsonHttpMessageConverter.class).isEmpty());
+		assertThat(this.context.getBeansOfType(Gson.class).isEmpty()).isTrue();
+		assertThat(this.context.getBeansOfType(GsonHttpMessageConverter.class).isEmpty())
+				.isTrue();
 	}
 
 	@Test
@@ -126,36 +133,35 @@ public class HttpMessageConvertersAutoConfigurationTests {
 		assertConverterBeanExists(GsonHttpMessageConverter.class,
 				"gsonHttpMessageConverter");
 
-		assertConverterBeanRegisteredWithHttpMessageConverters(GsonHttpMessageConverter.class);
+		assertConverterBeanRegisteredWithHttpMessageConverters(
+				GsonHttpMessageConverter.class);
 	}
 
 	@Test
 	public void jacksonIsPreferredByDefaultWhenBothGsonAndJacksonAreAvailable() {
-		this.context.register(GsonAutoConfiguration.class,
-				JacksonAutoConfiguration.class,
+		this.context.register(GsonAutoConfiguration.class, JacksonAutoConfiguration.class,
 				HttpMessageConvertersAutoConfiguration.class);
 		this.context.refresh();
 		assertConverterBeanExists(MappingJackson2HttpMessageConverter.class,
 				"mappingJackson2HttpMessageConverter");
-		assertConverterBeanRegisteredWithHttpMessageConverters(MappingJackson2HttpMessageConverter.class);
-		assertEquals(0, this.context.getBeansOfType(GsonHttpMessageConverter.class)
-				.size());
+		assertConverterBeanRegisteredWithHttpMessageConverters(
+				MappingJackson2HttpMessageConverter.class);
+		assertThat(this.context.getBeansOfType(GsonHttpMessageConverter.class)).isEmpty();
 	}
 
 	@Test
 	public void gsonCanBePreferredWhenBothGsonAndJacksonAreAvailable() {
-		this.context.register(GsonAutoConfiguration.class,
-				JacksonAutoConfiguration.class,
+		this.context.register(GsonAutoConfiguration.class, JacksonAutoConfiguration.class,
 				HttpMessageConvertersAutoConfiguration.class);
 		EnvironmentTestUtils.addEnvironment(this.context,
 				"spring.http.converters.preferred-json-mapper:gson");
 		this.context.refresh();
 		assertConverterBeanExists(GsonHttpMessageConverter.class,
 				"gsonHttpMessageConverter");
-		assertConverterBeanRegisteredWithHttpMessageConverters(GsonHttpMessageConverter.class);
-		assertEquals(0,
-				this.context.getBeansOfType(MappingJackson2HttpMessageConverter.class)
-						.size());
+		assertConverterBeanRegisteredWithHttpMessageConverters(
+				GsonHttpMessageConverter.class);
+		assertThat(this.context.getBeansOfType(MappingJackson2HttpMessageConverter.class))
+				.isEmpty();
 	}
 
 	@Test
@@ -166,7 +172,8 @@ public class HttpMessageConvertersAutoConfigurationTests {
 		assertConverterBeanExists(GsonHttpMessageConverter.class,
 				"customGsonMessageConverter");
 
-		assertConverterBeanRegisteredWithHttpMessageConverters(GsonHttpMessageConverter.class);
+		assertConverterBeanRegisteredWithHttpMessageConverters(
+				GsonHttpMessageConverter.class);
 	}
 
 	@Test
@@ -175,7 +182,8 @@ public class HttpMessageConvertersAutoConfigurationTests {
 		this.context.refresh();
 		assertConverterBeanExists(StringHttpMessageConverter.class,
 				"stringHttpMessageConverter");
-		assertConverterBeanRegisteredWithHttpMessageConverters(StringHttpMessageConverter.class);
+		assertConverterBeanRegisteredWithHttpMessageConverters(
+				StringHttpMessageConverter.class);
 	}
 
 	@Test
@@ -186,51 +194,58 @@ public class HttpMessageConvertersAutoConfigurationTests {
 		assertConverterBeanExists(StringHttpMessageConverter.class,
 				"customStringMessageConverter");
 
-		assertConverterBeanRegisteredWithHttpMessageConverters(StringHttpMessageConverter.class);
+		assertConverterBeanRegisteredWithHttpMessageConverters(
+				StringHttpMessageConverter.class);
 	}
 
 	@Test
-	public void httpMapperPropertiesAreNotAppliedWhenNotConfigured() throws Exception {
-		this.context.register(JacksonObjectMapperConfig.class,
+	public void typeConstrainedConverterDoesNotPreventAutoConfigurationOfJacksonConverter()
+			throws Exception {
+		this.context.register(JacksonObjectMapperBuilderConfig.class,
+				TypeConstrainedConverterConfiguration.class,
 				HttpMessageConvertersAutoConfiguration.class);
 		this.context.refresh();
-		MappingJackson2HttpMessageConverter converter = this.context
-				.getBean(MappingJackson2HttpMessageConverter.class);
-		assertNull(new DirectFieldAccessor(converter).getPropertyValue("prettyPrint"));
+
+		BeanDefinition beanDefinition = this.context
+				.getBeanDefinition("mappingJackson2HttpMessageConverter");
+		assertThat(beanDefinition.getFactoryBeanName()).isEqualTo(
+				MappingJackson2HttpMessageConverterConfiguration.class.getName());
 	}
 
 	@Test
-	public void httpMapperPropertiesAreAppliedWhenConfigured() throws Exception {
-		this.context.register(JacksonObjectMapperConfig.class,
+	public void typeConstrainedConverterFromSpringDataDoesNotPreventAutoConfigurationOfJacksonConverter()
+			throws Exception {
+		this.context.register(JacksonObjectMapperBuilderConfig.class,
+				RepositoryRestMvcConfiguration.class,
 				HttpMessageConvertersAutoConfiguration.class);
-		EnvironmentTestUtils.addEnvironment(this.context,
-				"http.mappers.jsonPrettyPrint:true");
 		this.context.refresh();
-		MappingJackson2HttpMessageConverter converter = this.context
-				.getBean(MappingJackson2HttpMessageConverter.class);
-		assertTrue((Boolean) new DirectFieldAccessor(converter)
-				.getPropertyValue("prettyPrint"));
+		BeanDefinition beanDefinition = this.context
+				.getBeanDefinition("mappingJackson2HttpMessageConverter");
+		assertThat(beanDefinition.getFactoryBeanName()).isEqualTo(
+				MappingJackson2HttpMessageConverterConfiguration.class.getName());
 	}
 
 	private void assertConverterBeanExists(Class<?> type, String beanName) {
-		assertEquals(1, this.context.getBeansOfType(type).size());
+		assertThat(this.context.getBeansOfType(type)).hasSize(1);
 		List<String> beanNames = Arrays.asList(this.context.getBeanDefinitionNames());
-		assertTrue(beanName + " not found in " + beanNames, beanNames.contains(beanName));
+		assertThat(beanNames).contains(beanName);
 	}
 
 	private void assertConverterBeanRegisteredWithHttpMessageConverters(Class<?> type) {
 		Object converter = this.context.getBean(type);
 		HttpMessageConverters converters = this.context
 				.getBean(HttpMessageConverters.class);
-		assertTrue(converters.getConverters().contains(converter));
+		assertThat(converters.getConverters().contains(converter)).isTrue();
 	}
 
 	@Configuration
 	protected static class JacksonObjectMapperConfig {
+
 		@Bean
 		public ObjectMapper objectMapper() {
 			return new ObjectMapper();
 		}
+
 	}
 
 	@Configuration
@@ -245,6 +260,7 @@ public class HttpMessageConvertersAutoConfigurationTests {
 		public Jackson2ObjectMapperBuilder builder() {
 			return new Jackson2ObjectMapperBuilder();
 		}
+
 	}
 
 	@Configuration
@@ -257,6 +273,7 @@ public class HttpMessageConvertersAutoConfigurationTests {
 			converter.setObjectMapper(objectMapper);
 			return converter;
 		}
+
 	}
 
 	@Configuration
@@ -268,6 +285,7 @@ public class HttpMessageConvertersAutoConfigurationTests {
 			converter.setGson(gson);
 			return converter;
 		}
+
 	}
 
 	@Configuration
@@ -277,6 +295,18 @@ public class HttpMessageConvertersAutoConfigurationTests {
 		public StringHttpMessageConverter customStringMessageConverter() {
 			return new StringHttpMessageConverter();
 		}
+
+	}
+
+	@Configuration
+	protected static class TypeConstrainedConverterConfiguration {
+
+		@Bean
+		public TypeConstrainedMappingJackson2HttpMessageConverter typeConstrainedConverter() {
+			return new TypeConstrainedMappingJackson2HttpMessageConverter(
+					ResourceSupport.class);
+		}
+
 	}
 
 }

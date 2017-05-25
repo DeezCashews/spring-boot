@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package org.springframework.boot.cli.compiler;
 
-import groovy.lang.GroovyClassLoader;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -32,10 +30,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import groovy.lang.GroovyClassLoader;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.control.CompilationUnit;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
+
 import org.springframework.util.Assert;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StringUtils;
@@ -160,10 +160,11 @@ public class ExtendedGroovyClassLoader extends GroovyClassLoader {
 		@Override
 		protected Class<?> createClass(byte[] code, ClassNode classNode) {
 			Class<?> createdClass = super.createClass(code, classNode);
-			ExtendedGroovyClassLoader.this.classResources.put(classNode.getName()
-					.replace(".", "/") + ".class", code);
+			ExtendedGroovyClassLoader.this.classResources
+					.put(classNode.getName().replace('.', '/') + ".class", code);
 			return createdClass;
 		}
+
 	}
 
 	/**
@@ -176,7 +177,7 @@ public class ExtendedGroovyClassLoader extends GroovyClassLoader {
 
 		private final URLClassLoader groovyOnlyClassLoader;
 
-		public DefaultScopeParentClassLoader(ClassLoader parent) {
+		DefaultScopeParentClassLoader(ClassLoader parent) {
 			super(parent);
 			this.groovyOnlyClassLoader = new URLClassLoader(getGroovyJars(parent), null);
 		}
@@ -187,7 +188,7 @@ public class ExtendedGroovyClassLoader extends GroovyClassLoader {
 			if (urls.isEmpty()) {
 				findGroovyJarsFromClassPath(parent, urls);
 			}
-			Assert.state(urls.size() > 0, "Unable to find groovy JAR");
+			Assert.state(!urls.isEmpty(), "Unable to find groovy JAR");
 			return new ArrayList<URL>(urls).toArray(new URL[urls.size()]);
 		}
 
@@ -238,6 +239,7 @@ public class ExtendedGroovyClassLoader extends GroovyClassLoader {
 			this.groovyOnlyClassLoader.loadClass(name);
 			return super.loadClass(name, resolve);
 		}
+
 	}
 
 }

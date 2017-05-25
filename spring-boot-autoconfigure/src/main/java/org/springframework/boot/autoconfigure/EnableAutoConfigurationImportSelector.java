@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,77 +16,34 @@
 
 package org.springframework.boot.autoconfigure;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-
-import org.springframework.beans.factory.BeanClassLoaderAware;
-import org.springframework.context.ResourceLoaderAware;
 import org.springframework.context.annotation.DeferredImportSelector;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.AnnotationAttributes;
-import org.springframework.core.annotation.Order;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.core.type.AnnotationMetadata;
-import org.springframework.util.Assert;
 
 /**
  * {@link DeferredImportSelector} to handle {@link EnableAutoConfiguration
- * auto-configuration}.
+ * auto-configuration}. This class can also be subclassed if a custom variant of
+ * {@link EnableAutoConfiguration @EnableAutoConfiguration}. is needed.
  *
+ * @deprecated as of 1.5 in favor of {@link AutoConfigurationImportSelector}
  * @author Phillip Webb
  * @author Andy Wilkinson
+ * @author Stephane Nicoll
+ * @author Madhura Bhave
+ * @since 1.3.0
  * @see EnableAutoConfiguration
  */
-@Order(Ordered.LOWEST_PRECEDENCE)
-class EnableAutoConfigurationImportSelector implements DeferredImportSelector,
-		BeanClassLoaderAware, ResourceLoaderAware {
-
-	private ClassLoader beanClassLoader;
-
-	private ResourceLoader resourceLoader;
+@Deprecated
+public class EnableAutoConfigurationImportSelector
+		extends AutoConfigurationImportSelector {
 
 	@Override
-	public String[] selectImports(AnnotationMetadata metadata) {
-		try {
-			AnnotationAttributes attributes = AnnotationAttributes.fromMap(metadata
-					.getAnnotationAttributes(EnableAutoConfiguration.class.getName(),
-							true));
-
-			Assert.notNull(attributes, "No auto-configuration attributes found. Is "
-					+ metadata.getClassName()
-					+ " annotated with @EnableAutoConfiguration?");
-
-			// Find all possible auto configuration classes, filtering duplicates
-			List<String> factories = new ArrayList<String>(new LinkedHashSet<String>(
-					SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
-							this.beanClassLoader)));
-
-			// Remove those specifically disabled
-			factories.removeAll(Arrays.asList(attributes.getStringArray("exclude")));
-
-			// Sort
-			factories = new AutoConfigurationSorter(this.resourceLoader)
-					.getInPriorityOrder(factories);
-
-			return factories.toArray(new String[factories.size()]);
+	protected boolean isEnabled(AnnotationMetadata metadata) {
+		if (getClass().equals(EnableAutoConfigurationImportSelector.class)) {
+			return getEnvironment().getProperty(
+					EnableAutoConfiguration.ENABLED_OVERRIDE_PROPERTY, Boolean.class,
+					true);
 		}
-		catch (IOException ex) {
-			throw new IllegalStateException(ex);
-		}
-	}
-
-	@Override
-	public void setBeanClassLoader(ClassLoader classLoader) {
-		this.beanClassLoader = classLoader;
-	}
-
-	@Override
-	public void setResourceLoader(ResourceLoader resourceLoader) {
-		this.resourceLoader = resourceLoader;
+		return true;
 	}
 
 }

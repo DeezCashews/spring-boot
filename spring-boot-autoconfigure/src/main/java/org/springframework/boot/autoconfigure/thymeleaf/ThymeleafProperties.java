@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package org.springframework.boot.autoconfigure.thymeleaf;
 
+import java.nio.charset.Charset;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.MimeType;
 
 /**
  * Properties for Thymeleaf.
@@ -24,12 +27,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author Stephane Nicoll
  * @since 1.2.0
  */
-@ConfigurationProperties("spring.thymeleaf")
+@ConfigurationProperties(prefix = "spring.thymeleaf")
 public class ThymeleafProperties {
+
+	private static final Charset DEFAULT_ENCODING = Charset.forName("UTF-8");
+
+	private static final MimeType DEFAULT_CONTENT_TYPE = MimeType.valueOf("text/html");
 
 	public static final String DEFAULT_PREFIX = "classpath:/templates/";
 
 	public static final String DEFAULT_SUFFIX = ".html";
+
+	/**
+	 * Check that the template exists before rendering it (Thymeleaf 3+).
+	 */
+	private boolean checkTemplate = true;
 
 	/**
 	 * Check that the templates location exists.
@@ -54,17 +66,24 @@ public class ThymeleafProperties {
 	/**
 	 * Template encoding.
 	 */
-	private String encoding = "UTF-8";
+	private Charset encoding = DEFAULT_ENCODING;
 
 	/**
 	 * Content-Type value.
 	 */
-	private String contentType = "text/html";
+	private MimeType contentType = DEFAULT_CONTENT_TYPE;
 
 	/**
 	 * Enable template caching.
 	 */
 	private boolean cache = true;
+
+	/**
+	 * Order of the template resolver in the chain. By default, the template resolver is
+	 * first in the chain. Order start at 1 and should only be set if you have defined
+	 * additional "TemplateResolver" beans.
+	 */
+	private Integer templateResolverOrder;
 
 	/**
 	 * Comma-separated list of view names that can be resolved.
@@ -87,6 +106,14 @@ public class ThymeleafProperties {
 
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+
+	public boolean isCheckTemplate() {
+		return this.checkTemplate;
+	}
+
+	public void setCheckTemplate(boolean checkTemplate) {
+		this.checkTemplate = checkTemplate;
 	}
 
 	public boolean isCheckTemplateLocation() {
@@ -121,19 +148,19 @@ public class ThymeleafProperties {
 		this.mode = mode;
 	}
 
-	public String getEncoding() {
+	public Charset getEncoding() {
 		return this.encoding;
 	}
 
-	public void setEncoding(String encoding) {
+	public void setEncoding(Charset encoding) {
 		this.encoding = encoding;
 	}
 
-	public String getContentType() {
+	public MimeType getContentType() {
 		return this.contentType;
 	}
 
-	public void setContentType(String contentType) {
+	public void setContentType(MimeType contentType) {
 		this.contentType = contentType;
 	}
 
@@ -143,6 +170,14 @@ public class ThymeleafProperties {
 
 	public void setCache(boolean cache) {
 		this.cache = cache;
+	}
+
+	public Integer getTemplateResolverOrder() {
+		return this.templateResolverOrder;
+	}
+
+	public void setTemplateResolverOrder(Integer templateResolverOrder) {
+		this.templateResolverOrder = templateResolverOrder;
 	}
 
 	public String[] getExcludedViewNames() {

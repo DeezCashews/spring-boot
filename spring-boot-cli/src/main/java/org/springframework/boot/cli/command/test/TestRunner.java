@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.boot.cli.command.test;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.boot.cli.compiler.GroovyCompiler;
@@ -43,12 +44,11 @@ public class TestRunner {
 
 	/**
 	 * Create a new {@link TestRunner} instance.
-	 * @param configuration
-	 * @param sources
-	 * @param args
+	 * @param configuration the configuration
+	 * @param sources the sources
+	 * @param args the args
 	 */
-	public TestRunner(TestRunnerConfiguration configuration, String[] sources,
-			String[] args) {
+	TestRunner(TestRunnerConfiguration configuration, String[] sources, String[] args) {
 		this.sources = sources.clone();
 		this.compiler = new GroovyCompiler(configuration);
 	}
@@ -56,7 +56,8 @@ public class TestRunner {
 	public void compileAndRunTests() throws Exception {
 		Object[] sources = this.compiler.compile(this.sources);
 		if (sources.length == 0) {
-			throw new RuntimeException("No classes found in '" + this.sources + "'");
+			throw new RuntimeException(
+					"No classes found in '" + Arrays.toString(this.sources) + "'");
 		}
 
 		// Run in new thread to ensure that the context classloader is setup
@@ -90,13 +91,14 @@ public class TestRunner {
 		 * Create a new {@link RunThread} instance.
 		 * @param sources the sources to launch
 		 */
-		public RunThread(Object... sources) {
+		RunThread(Object... sources) {
 			super("testrunner");
 			setDaemon(true);
 			if (sources.length != 0 && sources[0] instanceof Class) {
 				setContextClassLoader(((Class<?>) sources[0]).getClassLoader());
 			}
-			this.spockSpecificationClass = loadSpockSpecificationClass(getContextClassLoader());
+			this.spockSpecificationClass = loadSpockSpecificationClass(
+					getContextClassLoader());
 			this.testClasses = getTestClasses(sources);
 		}
 
@@ -136,8 +138,8 @@ public class TestRunner {
 		}
 
 		private boolean isSpockTest(Class<?> sourceClass) {
-			return (this.spockSpecificationClass != null && this.spockSpecificationClass
-					.isAssignableFrom(sourceClass));
+			return (this.spockSpecificationClass != null
+					&& this.spockSpecificationClass.isAssignableFrom(sourceClass));
 		}
 
 		@Override
@@ -157,8 +159,8 @@ public class TestRunner {
 							resultClass);
 					Object result = resultClass.newInstance();
 					runMethod.invoke(null, this.testClasses, result);
-					boolean wasSuccessful = (Boolean) resultClass.getMethod(
-							"wasSuccessful").invoke(result);
+					boolean wasSuccessful = (Boolean) resultClass
+							.getMethod("wasSuccessful").invoke(result);
 					if (!wasSuccessful) {
 						throw new RuntimeException("Tests Failed.");
 					}
@@ -168,6 +170,7 @@ public class TestRunner {
 				ReflectionUtils.rethrowRuntimeException(ex);
 			}
 		}
+
 	}
 
 }

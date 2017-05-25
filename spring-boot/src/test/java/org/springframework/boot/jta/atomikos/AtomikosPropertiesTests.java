@@ -1,14 +1,14 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
- * Licensed under the Apache License, Version 2.0 (the"License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an"AS IS"BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -16,15 +16,23 @@
 
 package org.springframework.boot.jta.atomikos;
 
+import java.lang.reflect.Method;
+import java.util.Properties;
+
+import org.assertj.core.data.MapEntry;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.ReflectionUtils;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 /**
- * Tests for ;@link AtomikosProperties}.
+ * Tests for {@link AtomikosProperties}.
  *
  * @author Phillip Webb
+ * @author Stephane Nicoll
  */
 public class AtomikosPropertiesTests {
 
@@ -50,7 +58,7 @@ public class AtomikosPropertiesTests {
 		this.properties.setConsoleFileLimit(6);
 		this.properties.setThreadedTwoPhaseCommit(true);
 
-		assertThat(this.properties.asProperties().size(), equalTo(17));
+		assertThat(this.properties.asProperties().size()).isEqualTo(17);
 		assertProperty("com.atomikos.icatch.service", "service");
 		assertProperty("com.atomikos.icatch.max_timeout", "1");
 		assertProperty("com.atomikos.icatch.default_jta_timeout", "2");
@@ -70,8 +78,52 @@ public class AtomikosPropertiesTests {
 		assertProperty("com.atomikos.icatch.threaded_2pc", "true");
 	}
 
+	@Test
+	public void testDefaultProperties() {
+		Properties defaultSettings = loadDefaultSettings();
+		Properties properties = this.properties.asProperties();
+		assertThat(properties).contains(defaultOf(defaultSettings,
+				"com.atomikos.icatch.max_timeout",
+				"com.atomikos.icatch.default_jta_timeout",
+				"com.atomikos.icatch.max_actives",
+				"com.atomikos.icatch.enable_logging",
+				"com.atomikos.icatch.serial_jta_transactions",
+				"com.atomikos.icatch.force_shutdown_on_vm_exit",
+				"com.atomikos.icatch.log_base_name",
+				"com.atomikos.icatch.checkpoint_interval",
+				"com.atomikos.icatch.threaded_2pc"));
+		assertThat(properties).contains(
+				entry("com.atomikos.icatch.console_log_level", "WARN"),
+				entry("com.atomikos.icatch.console_file_name", "tm.out"),
+				entry("com.atomikos.icatch.console_file_count", "1"),
+				entry("com.atomikos.icatch.console_file_limit", "-1"));
+		assertThat(properties).hasSize(13);
+	}
+
+	private MapEntry<?, ?>[] defaultOf(Properties defaultSettings, String... keys) {
+		MapEntry<?, ?>[] entries = new MapEntry[keys.length];
+		for (int i = 0; i < keys.length; i++) {
+			String key = keys[i];
+			entries[i] = entry(key, defaultSettings.get(key));
+		}
+		return entries;
+	}
+
+	private Properties loadDefaultSettings() {
+		try {
+			Class<?> target = ClassUtils.forName("com.atomikos.icatch.standalone.UserTransactionServiceImp",
+					getClass().getClassLoader());
+			Method m = target.getMethod("getDefaultProperties");
+			m.setAccessible(true);
+			return (Properties) ReflectionUtils.invokeMethod(m, null);
+		}
+		catch (Exception ex) {
+			throw new IllegalStateException("Failed to get default from Atomikos", ex);
+		}
+	}
+
 	private void assertProperty(String key, String value) {
-		assertThat(this.properties.asProperties().getProperty(key), equalTo(value));
+		assertThat(this.properties.asProperties().getProperty(key)).isEqualTo(value);
 	}
 
 }
